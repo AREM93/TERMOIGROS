@@ -597,7 +597,7 @@ TH.norme = [
   }
 
   /* Grafico a linee generico. series: {pts:[[x,y]], col, dash, name} ; vl: linee verticali x. */
-  function linee({ series, vl = [], bands = [], xl, yl, W = 420, H = 260, ydec = 0, pts = false }) {
+  function linee({ series, vl = [], bands = [], xl, yl, W = 420, H = 260, ydec = 0, pts = false, legend = true, xticks = null }) {
     const m = { l:48, r:12, t:12, b:34 };
     const xs = series.flatMap(s => s.pts.map(p => p[0])), ys = series.flatMap(s => s.pts.map(p => p[1]));
     let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
@@ -607,11 +607,12 @@ TH.norme = [
     if (bands.length) { const pre = 'b' + (++uidP) + '-'; o += defsRetini(pre, bands.map(t => t.st.pat)) + '<g opacity=".4">'
       + bands.map(t => riempi(pre, t.st, X(t.x0), m.t, Math.max(0.5, X(t.x1) - X(t.x0)), H - m.t - m.b)).join('') + '</g>'; }
     for (let i = 0; i <= 4; i++) { const v = y0 + (y1 - y0) * i / 4; o += `<text x="${m.l - 4}" y="${Y(v) + 3}" text-anchor="end">${v.toFixed(ydec)}</text><line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#889" stroke-opacity=".2"/>`; }
-    for (let i = 0; i <= 4; i++) { const v = x0 + (x1 - x0) * i / 4; o += `<text x="${X(v)}" y="${H - m.b + 13}" text-anchor="middle">${v < 10 ? v.toFixed(2) : v.toFixed(0)}</text>`; }
+    if (xticks) xticks.forEach(([v, t]) => o += `<text x="${X(v)}" y="${H - m.b + 13}" text-anchor="middle">${esc(t)}</text>`);
+    else for (let i = 0; i <= 4; i++) { const v = x0 + (x1 - x0) * i / 4; o += `<text x="${X(v)}" y="${H - m.b + 13}" text-anchor="middle">${v < 10 ? v.toFixed(2) : v.toFixed(0)}</text>`; }
     vl.forEach(v => o += `<line x1="${X(v)}" x2="${X(v)}" y1="${m.t}" y2="${H - m.b}" stroke="#889" stroke-opacity=".45" stroke-dasharray="2"/>`);
     series.forEach(s => o += `<polyline fill="none" stroke="${s.col}" stroke-width="2" ${s.dash ? 'stroke-dasharray="5 3"' : ''} points="${s.pts.map(p => X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1)).join(' ')}"/>`);
     if (pts) series.forEach(s => s.pts.forEach(p => { if (p[1] > y0 + pad * 1.01) o += `<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="2.5" fill="${s.col}"/>`; }));
-    series.forEach((s, i) => o += `<rect x="${m.l + 8 + i * 118}" y="${m.t + 6}" width="10" height="3" fill="${s.col}"/><text x="${m.l + 22 + i * 118}" y="${m.t + 11}">${esc(s.name)}</text>`);
+    if (legend) series.forEach((s, i) => o += `<rect x="${m.l + 8 + i * 118}" y="${m.t + 6}" width="10" height="3" fill="${s.col}"/><text x="${m.l + 22 + i * 118}" y="${m.t + 11}">${esc(s.name)}</text>`);
     return o + `<text x="${(W + m.l) / 2}" y="${H - 4}" text-anchor="middle">${esc(xl)}</text><text x="11" y="${H / 2}" transform="rotate(-90 11 ${H / 2})" text-anchor="middle">${esc(yl)}</text></svg>`;
   }
 
@@ -642,6 +643,17 @@ TH.norme = [
     return linee({ series:[{ pts:model.nodes.map((n, j) => [n.x * 1000, mese.theta[j]]), col:'#c94a4a', name:'θ strato' }],
       vl:(() => { let x = 0; return model.layers.map(l => (x += l.d * 1000)); })(), bands:bande(model, 'x'), xl:'Spessore [mm] (interno → esterno)', yl:'Temperatura [°C]', ydec:1 });
   }
+  /* Temperatura alle interfacce degli strati nei 12 mesi (gen-dic). Ritorna { svg, legenda }. */
+  function temperatureMesi(model, res) {
+    const N = model.nodes.length - 1, idx = [0];
+    model.nodes.forEach((n, j) => { if (j > 0 && j < N && n.layer !== model.nodes[j + 1].layer) idx.push(j); }); idx.push(N);
+    const cols = ['#b3261e','#c94a4a','#e08a7a','#8c8385','#4a4547','#9b5457','#cfa09a','#6b6264','#d9534f','#a8a2a3','#7a7274'];
+    const L = model.layers, nomi = idx.map((j, k) => k === 0 ? 'Superficie interna' : k === idx.length - 1 ? 'Superficie esterna' : 'Interfaccia ' + k + '/' + (k + 1) + ' (' + L[k - 1].nome + ' | ' + L[k].nome + ')');
+    const series = idx.map((j, k) => ({ pts:res.mesi.map((o, m) => [m + 1, o.theta[j]]), col:cols[k % cols.length], dash:k % 2 === 1, name:nomi[k] }));
+    return { svg:linee({ series, legend:false, xl:'Mese', yl:'Temperatura [°C]', ydec:1, W:520, H:280, xticks:MESI_S.map((t, i) => [i + 1, t]) }),
+      legenda:series.map(s => ({ col:s.col, dash:s.dash, name:s.name })), nodi:idx };
+  }
+  const MESI_S = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
   /* Condensa accumulata mensile (g/m2). */
   function condensa(res) {
     const ord = [9,10,11,0,1,2,3,4,5,6,7,8];
@@ -649,7 +661,7 @@ TH.norme = [
       { pts:[[1, res.limite * 1000], [12, res.limite * 1000]], col:'#b3261e', dash:true, name:'limite' }],
       xl:'Mese (1 = ottobre … 12 = settembre)', yl:'g/m²' });
   }
-  window.TH = window.TH || {}; TH.charts = { umidita, acquaStrati, PATTERNS, PALETTE, stile, campione, sezione, glaser, temperature, condensa };
+  window.TH = window.TH || {}; TH.charts = { temperatureMesi, umidita, acquaStrati, PATTERNS, PALETTE, stile, campione, sezione, glaser, temperature, condensa };
 })();
 
 </script>
@@ -820,7 +832,11 @@ TH.norme = [
       <label>Esposizione<select id="n-or"><option value="S">Est / Sud / Ovest / orizzontale</option><option value="N">Nord (esente verifica estiva)</option></select></label></div>
       <p><button class="b" data-a="addEl">+ Aggiungi e verifica</button></p></div>`;
     const res = P.elementi.map((el, i) => card(el, i)).join('') || '<div class="card"><p class="note">Nessun elemento: aggiungi una stratigrafia e un ambiente confinante.</p></div>';
-    return `<div class="row noprint" style="margin-bottom:10px"></div>
+    const rep = `<div class="card noprint"><h2>Relazione tecnica</h2><div class="row"><label style="display:flex;gap:6px;align-items:center;color:var(--ink)"><input type="checkbox" style="width:auto;margin:0" data-r="pdf" ${repOpt.pdf ? 'checked' : ''}> PDF (A4)</label>
+      <label style="display:flex;gap:6px;align-items:center;color:var(--ink)"><input type="checkbox" style="width:auto;margin:0" data-r="txt" ${repOpt.txt ? 'checked' : ''}> TXT</label>
+      <button class="b" data-a="report">Genera relazione</button></div>
+      <p class="note">Il PDF si ottiene dalla finestra di stampa del browser («Salva come PDF», A4, interlinea 1,5). La relazione comprende normativa, formule, stratigrafie, grafici e verifiche di tutti gli elementi qui sotto.</p></div>`;
+    return `<div class="row noprint" style="margin-bottom:10px"></div>${rep}
     <div class="card"><h2>${esc(P.nome)} – ${esc(P.clima.nome)}</h2><p class="note">Zona climatica ${z} · GG ${P.clima.GG} · lat ${P.clima.lat} lon ${P.clima.lon} · θi ${P.thetaI} °C φi ${P.phiI} % · limiti: ${esc(set.label)}</p></div>${add}${lim}${res}`;
   }
   function card(el, i) {
@@ -854,6 +870,212 @@ TH.norme = [
     <tr><th>Condensa del mese [g/m²]</th>${g.mesi.map(o => `<td class="num">${fmt(o.g * 1000, 1)}</td>`).join('')}</tr>
     <tr><th>Accumulo [g/m²]</th>${g.mesi.map(o => `<td class="num">${fmt(o.maxM * 1000, 1)}</td>`).join('')}</tr></table></div></div>`;
   }
+
+
+  /* ---------- Relazione tecnica (PDF via stampa A4 / TXT) ---------- */
+  const repOpt = { pdf:true, txt:false };
+  const oggi = () => new Date().toLocaleDateString('it-IT');
+  const nTipo = { parete:'parete verticale', copertura:'copertura / soffitto', pavimento:'pavimento / solaio' };
+  const nAmb = { esterno:'ambiente esterno', non_climatizzato:'ambiente non climatizzato', terreno:'terreno', climatizzato:'ambiente climatizzato adiacente', mensile:'ambiente a temperature mensili' };
+  const pianiDescr = (model, piani) => [...new Set(piani.map(j => { const n = model.nodes[j], nx = model.nodes[j + 1], a = model.layers[n.layer], b = nx && nx.layer !== n.layer ? model.layers[nx.layer] : null;
+    return b ? 'interfaccia «' + a.nome + '» / «' + b.nome + '»' : 'interno dello strato «' + a.nome + '»'; }))];
+  function datiRel() {
+    return P.elementi.map(el => { const r = calcola(el); if (!r) return null; const strat = stratigrafie().find(s => s.id === el.stratId), amb = P.ambienti.find(a => a.id === el.ambId);
+      const g = r.glaser, mm = g.assente ? 0 : g.mesi.findIndex(o => o.maxM === g.maxM);
+      return { el, r, strat, amb, g, mm, mese:g.mesi[mm] }; }).filter(Boolean);
+  }
+  /* Testo descrittivo comune a PDF e TXT. */
+  function commenti(d) {
+    const { r, g, mm } = d, out = {};
+    out.U = `La trasmittanza termica calcolata è U = ${fmt(r.U)} W/m²K` + (r.b !== 1 ? `; applicando il coefficiente di riduzione b = ${fmt(r.b, 2)} si ottiene U·b = ${fmt(r.Ucmp)} W/m²K` : '')
+      + (r.Ulim == null ? '. Per questo tipo di confine non è previsto un valore limite.' : `. Il valore limite per la zona climatica ${P.clima.zona} è ${fmt(r.Ulim, 2)} W/m²K: la verifica è ${r.Uok ? 'SODDISFATTA' : 'NON SODDISFATTA'}.`);
+    out.est = r.esente ? 'La verifica estiva non è richiesta per l\'esposizione a Nord.' : r.estiva == null ? 'La verifica estiva non si applica al confine considerato.'
+      : `La massa superficiale è M_s = ${fmt(r.Ms, 0)} kg/m² e la trasmittanza termica periodica Y_ie = ${fmt(r.dyn.Yie)} W/m²K (limite ${fmt(r.yieLim, 2)}); lo sfasamento è ${fmt(r.dyn.sfasamento, 1)} h. La verifica è ${r.estiva ? 'SODDISFATTA' : 'NON SODDISFATTA'}.`;
+    out.muffa = `Il fattore di temperatura della superficie interna è f_Rsi = ${fmt(r.muffa.f)} contro un valore minimo richiesto f_Rsi,min = ${fmt(r.muffa.fmin)}${r.muffa.mese >= 0 ? ' (mese critico: ' + MESI[r.muffa.mese] + ')' : ''}: il rischio di condensa/muffa superficiale è ${r.muffa.ok ? 'ASSENTE' : 'PRESENTE'}.`;
+    out.gla = g.assente ? 'Il diagramma di Glaser non evidenzia condensazione interstiziale in alcun mese dell\'anno.'
+      : `La condensazione interstiziale interessa i mesi ${g.mesiCond.map(m => MESI[m]).join(', ')}, con accumulo massimo di ${fmt(g.maxM * 1000, 0)} g/m² (limite ${fmt(g.limite * 1000, 0)} g/m²)`
+        + (d.mese.piani.length ? ' in corrispondenza di: ' + pianiDescr(r.model, d.mese.piani).join('; ') : '') + `. A fine anno il residuo è ${fmt(g.residuo * 1000, 1)} g/m²: la verifica è ${g.ok ? 'SODDISFATTA (condensa ammissibile e smaltita)' : 'NON SODDISFATTA'}.`;
+    return out;
+  }
+  const FORMULE = [
+    ['Resistenza di uno strato omogeneo', 'R<sub>i</sub> = d<sub>i</sub> / λ<sub>i</sub>', 'R_i = d_i / lambda_i   [m2K/W]', 'UNI EN ISO 6946'],
+    ['Resistenza di intercapedine d\'aria', 'R<sub>g</sub> = f(d, direzione del flusso) da prospetto normativo', 'R_g = f(spessore, direzione flusso)  (prospetto ISO 6946)', 'UNI EN ISO 6946'],
+    ['Resistenza totale', 'R<sub>T</sub> = R<sub>si</sub> + ΣR<sub>i</sub> + R<sub>se</sub>', 'R_T = R_si + somma(R_i) + R_se', 'UNI EN ISO 6946'],
+    ['Trasmittanza termica', 'U = 1 / R<sub>T</sub> ;   U<sub>eff</sub> = b · U', 'U = 1 / R_T ;  U_eff = b * U   [W/m2K]', 'UNI EN ISO 6946; UNI/TS 11300-1'],
+    ['Temperatura alle interfacce', 'θ<sub>x</sub> = θ<sub>i</sub> − (θ<sub>i</sub> − θ<sub>e</sub>) · (R<sub>si</sub> + ΣR<sub>x</sub>) / R<sub>T</sub>', 'theta_x = theta_i - (theta_i - theta_e) * (R_si + somma R_x) / R_T', 'UNI EN ISO 13788'],
+    ['Pressione di saturazione', 'p<sub>sat</sub> = 610,5 · exp[17,269 θ / (237,3 + θ)]  (θ ≥ 0 °C);   p<sub>sat</sub> = 610,5 · exp[21,875 θ / (265,5 + θ)]  (θ &lt; 0 °C)', 'p_sat = 610,5 exp(17,269 t/(237,3+t)) per t>=0 ; p_sat = 610,5 exp(21,875 t/(265,5+t)) per t<0  [Pa]', 'UNI EN ISO 13788'],
+    ['Pressione di vapore', 'p = φ · p<sub>sat</sub>(θ)', 'p = phi * p_sat(theta)', 'UNI EN ISO 13788'],
+    ['Spessore d\'aria equivalente alla diffusione', 's<sub>d,i</sub> = μ<sub>i</sub> · d<sub>i</sub>', 's_d,i = mu_i * d_i   [m]', 'UNI EN ISO 13788; UNI EN ISO 10456'],
+    ['Flusso di vapore al piano di condensazione c', 'g<sub>c</sub> = δ<sub>a</sub> · [ (p<sub>a</sub> − p<sub>c</sub>)/(s<sub>d,c</sub> − s<sub>d,a</sub>) − (p<sub>c</sub> − p<sub>b</sub>)/(s<sub>d,b</sub> − s<sub>d,c</sub>) ],  δ<sub>a</sub> = 2·10<sup>−10</sup> kg/(m·s·Pa)', 'g_c = delta_a * [ (p_a - p_c)/(sd_c - sd_a) - (p_c - p_b)/(sd_b - sd_c) ] ; delta_a = 2e-10 kg/(m s Pa)', 'UNI EN ISO 13788 (metodo di Glaser)'],
+    ['Accumulo mensile di condensa', 'M<sub>c,m</sub> = max(0 ; M<sub>c,m−1</sub> + g<sub>c,m</sub> · t<sub>m</sub>)', 'M_c,m = max(0, M_c,m-1 + g_c,m * t_m)   [kg/m2]', 'UNI EN ISO 13788'],
+    ['Fattore di temperatura superficiale', 'f<sub>Rsi</sub> = 1 − R<sub>si</sub> · U (R<sub>si</sub> = 0,25 m²K/W) ;   f<sub>Rsi,min</sub> = (θ<sub>si,min</sub> − θ<sub>e</sub>) / (θ<sub>i</sub> − θ<sub>e</sub>),  θ<sub>si,min</sub> = p<sub>sat</sub><sup>−1</sup>(p<sub>i</sub> / 0,80)', 'f_Rsi = 1 - 0,25 U ; f_Rsi,min = (theta_si,min - theta_e)/(theta_i - theta_e) ; theta_si,min = p_sat^-1(p_i/0,80)', 'UNI EN ISO 13788'],
+    ['Massa superficiale', 'M<sub>s</sub> = Σ ρ<sub>i</sub> · d<sub>i</sub>', 'M_s = somma(rho_i * d_i)   [kg/m2]', 'DPR 59/2009; UNI EN ISO 13786'],
+    ['Profondità di penetrazione e strato dinamico', 'δ = √(λ · T / (π · ρ · c)),   ξ = d / δ ;   matrice di trasmissione complessa dello strato in funzione di ξ (T = 24 h)', 'delta = sqrt(lambda*T/(pi*rho*c)) ; xi = d/delta ; matrice di trasmissione complessa (T = 24 h)', 'UNI EN ISO 13786'],
+    ['Trasmittanza termica periodica, fattore di attenuazione, sfasamento', 'Y<sub>ie</sub> = −1 / Z<sub>12</sub> ;   f<sub>a</sub> = Y<sub>ie</sub> / U ;   φ = −arg(Y<sub>ie</sub>) · T / 2π', 'Y_ie = -1/Z_12 ; f_a = Y_ie / U ; sfasamento = -arg(Y_ie) * T / (2 pi)   [h]', 'UNI EN ISO 13786'],
+    ['Capacità termica areica interna / esterna', 'κ = (T / 2π) · | Z<sub>11</sub>/Z<sub>12</sub> |  (interna);   κ = (T / 2π) · | Z<sub>22</sub>/Z<sub>12</sub> |  (esterna)', 'kappa_1,2 = (T / 2 pi) * |Z_11/Z_12| , |Z_22/Z_12|   [kJ/m2K]', 'UNI EN ISO 13786']
+  ];
+  const CRITERI = [
+    'Trasmittanza: U (o U·b) ≤ valore limite per zona climatica e tipologia di elemento.',
+    'Condensa superficiale/muffa: f_Rsi ≥ f_Rsi,min (φ superficiale limite 80 %).',
+    'Condensa interstiziale: accumulo massimo ≤ limite (default 0,5 kg/m²) e nessun residuo a fine anno.',
+    'Verifica estiva: M_s > 230 kg/m² oppure Y_ie < 0,10 W/m²K (pareti verticali) / 0,18 W/m²K (pareti orizzontali e inclinate); esente l\'esposizione Nord.'
+  ];
+
+  function relazioneHTML() {
+    const D = datiRel(), c = P.clima, set = limitiSet()[P.limitSet];
+    const ts = (x) => x.replace(/&/g, '&amp;');
+    const css = `@page{size:A4;margin:20mm 18mm 22mm 18mm;@bottom-center{content:"Pag. " counter(page) " / " counter(pages);font:9pt Georgia,serif;color:#666}}
+      *{box-sizing:border-box}html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      body{font:11pt/1.5 Georgia,'Times New Roman',serif;color:#222;margin:0}
+      h1{font-size:15pt;line-height:1.5;margin:0 0 6pt;padding-bottom:3pt;border-bottom:2px solid #9b2226;color:#6b1518;page-break-before:always;break-before:page}
+      h1.nb{page-break-before:avoid;break-before:avoid}
+      h2{font-size:12.5pt;line-height:1.5;margin:12pt 0 3pt;color:#3d3436}h3{font-size:11pt;line-height:1.5;margin:8pt 0 2pt;color:#6f6667}
+      p{margin:0 0 6pt;text-align:justify}table{border-collapse:collapse;width:100%;margin:4pt 0 8pt;font-size:9pt;line-height:1.5}
+      th,td{border:1px solid #bbb;padding:0 4pt;text-align:left;vertical-align:top}th{background:#ece6e6;font-weight:700}td.n{text-align:right;white-space:nowrap}
+      table.mt{font-size:7.5pt}table.mt td,table.mt th{padding:0 2pt}
+      figure{margin:6pt 0 8pt;text-align:center;break-inside:avoid;page-break-inside:avoid}figcaption{font-size:9pt;color:#555;line-height:1.5}
+      svg{max-width:100%;height:auto}figure>svg{max-width:135mm}svg text{fill:#222;font-family:Georgia,serif}
+      .cover{text-align:center;padding-top:55mm}.cover h1{border:0;font-size:24pt;page-break-before:avoid;color:#6b1518}.cover .sub{font-size:13pt;color:#555}
+      .box{border:1px solid #bbb;border-left:4px solid #9b2226;padding:4pt 8pt;margin:6pt 0;background:#faf6f6;break-inside:avoid}
+      .ok{color:#3f5a4c;font-weight:700}.ko{color:#b3261e;font-weight:700}.sw{display:inline-block;width:22px;height:0;border-top:3px solid;vertical-align:middle;margin-right:4px}
+      .leg{font-size:8.5pt;line-height:1.5;columns:2;column-gap:12pt}.leg div{break-inside:avoid}
+      .two{display:grid;grid-template-columns:1fr 1fr;gap:8pt}.f{font-size:10pt;line-height:1.5}
+      .sec{break-inside:avoid-page}`;
+    const E = (v, a = 'VERIFICATO', b = 'NON VERIFICATO') => v == null ? 'n.a.' : v ? `<span class="ok">${a}</span>` : `<span class="ko">${b}</span>`;
+    let h = `<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Relazione termoigrometrica - ${esc(P.nome)}</title><style>${css}</style></head><body>`;
+    h += `<div class="cover"><div class="sub">RELAZIONE TECNICA</div><h1>Verifica termoigrometrica dell'involucro edilizio</h1><p class="sub">${esc(P.nome)}</p>
+      <p>Committente / note: ${esc(P.committente || '—')}<br>Località: ${esc(c.nome)}${c.prov ? ' (' + esc(c.prov) + ')' : ''} · zona climatica ${c.zona} · ${fmt(c.GG, 0)} GG<br>Data: ${oggi()}</p>
+      <p class="f" style="margin-top:30mm">Documento generato con l'applicativo «Verifica termoigrometrica».<br>Dati climatici e valori limite indicativi: da verificare sulle fonti ufficiali prima dell'uso professionale.</p></div>`;
+    // Indice
+    const idx = ['1. Premessa e scopo', '2. Normativa di riferimento', '3. Dati di progetto e climatici', '4. Metodo di calcolo e formule impiegate', '5. Verifica degli elementi di involucro',
+      ...D.map((d, i) => '    5.' + (i + 1) + ' ' + d.el.nome), '6. Sintesi degli esiti', '7. Note, limiti e avvertenze'];
+    h += `<h1>Indice</h1>${idx.map(x => `<p style="margin:0;white-space:pre">${esc(x)}</p>`).join('')}`;
+    // 1
+    h += `<h1>1. Premessa e scopo</h1><p>La presente relazione documenta la verifica termoigrometrica degli elementi di involucro relativi al progetto «${esc(P.nome)}», ubicato a ${esc(c.nome)} (zona climatica ${c.zona}, ${fmt(c.GG, 0)} gradi giorno).
+      Per ciascun elemento sono riportati la stratigrafia, la trasmittanza termica, la massa superficiale e il comportamento dinamico estivo, l'andamento delle temperature negli strati nel corso dell'anno e l'esito delle verifiche igrometriche (condensa superficiale e interstiziale).</p>
+      <p>Le verifiche sono eseguite secondo le norme UNI EN ISO 6946, 13788 e 13786 e confrontate con i valori limite per zona climatica scelti in fase di progetto: <b>${esc(set.label)}</b>.</p>
+      <p>Elementi verificati: ${D.length}. Condizioni interne di progetto: θ<sub>i</sub> = ${fmt(P.thetaI, 1)} °C, φ<sub>i</sub> = ${fmt(P.phiI, 0)} %.</p>`;
+    // 2
+    h += `<h1>2. Normativa di riferimento</h1><table><tr><th>Tipo</th><th>Riferimento</th><th>Contenuto</th><th>Uso nel calcolo</th></tr>${TH.norme.map(n => `<tr><td>${esc(n[0])}</td><td>${esc(n[1])}</td><td>${esc(n[2])}</td><td>${esc(n[3])}</td></tr>`).join('')}</table>`;
+    // 3
+    h += `<h1>3. Dati di progetto e climatici</h1><h2>3.1 Dati generali</h2><table><tr><th>Grandezza</th><th>Valore</th></tr>
+      <tr><td>Comune</td><td>${esc(c.nome)}${c.prov ? ' (' + esc(c.prov) + ')' : ''}</td></tr><tr><td>Latitudine · longitudine · altitudine</td><td>${c.lat} °N · ${c.lon} °E · ${c.alt} m s.l.m.</td></tr>
+      <tr><td>Gradi giorno · zona climatica</td><td>${fmt(c.GG, 0)} · ${c.zona}${c.stima ? ' (GG stimati)' : ''}</td></tr><tr><td>Temperatura / umidità interne</td><td>${fmt(P.thetaI, 1)} °C · ${fmt(P.phiI, 0)} %</td></tr>
+      <tr><td>Limite condensa interstiziale</td><td>${fmt(P.limiteCondensa, 2)} kg/m²</td></tr><tr><td>Valori limite U</td><td>${esc(set.label)}</td></tr></table>
+      <h2>3.2 Dati climatici mensili</h2><table class="mt"><tr><th></th>${MESI.map(m => `<th>${m}</th>`).join('')}</tr><tr><th>θ<sub>e</sub> [°C]</th>${c.theta.map(v => `<td class="n">${fmt(v, 1)}</td>`).join('')}</tr><tr><th>φ<sub>e</sub> [%]</th>${c.phi.map(v => `<td class="n">${fmt(v, 0)}</td>`).join('')}</tr></table>
+      <h2>3.3 Ambienti confinanti</h2><table><tr><th>Ambiente</th><th>Tipo</th><th>Parametri</th></tr>${P.ambienti.map(a => `<tr><td>${esc(a.nome)}</td><td>${nAmb[a.tipo] || a.tipo}</td><td>${a.tipo === 'non_climatizzato' ? 'b = ' + fmt(a.b ?? 0.5, 2) : a.tipo === 'terreno' ? 'θ = ' + a.theta + ' °C, φ = ' + a.phi + ' %, b = ' + fmt(a.b ?? 1, 2) : a.tipo === 'climatizzato' ? 'θ = ' + a.theta + ' °C, φ = ' + a.phi + ' %' : a.tipo === 'mensile' ? '12 valori mensili' : 'clima del comune'}</td></tr>`).join('')}</table>`;
+    // 4
+    h += `<h1>4. Metodo di calcolo e formule impiegate</h1><p>Il calcolo è condotto in regime stazionario per la trasmittanza e la verifica igrometrica (metodo di Glaser, con accumulo mensile da ottobre a settembre) e in regime periodico per le grandezze dinamiche estive (periodo T = 24 h). Si assume flusso monodimensionale; non sono considerati ponti termici, scambio con il terreno (UNI EN ISO 13370) e serramenti.</p>
+      <table class="f"><tr><th>Grandezza</th><th>Formula</th><th>Riferimento</th></tr>${FORMULE.map(f => `<tr><td>${f[0]}</td><td>${f[1]}</td><td>${f[3]}</td></tr>`).join('')}</table>
+      <h2>4.1 Resistenze superficiali (UNI EN ISO 6946)</h2><p>R<sub>si</sub> = 0,13 m²K/W (flusso orizzontale), 0,10 (ascendente), 0,17 (discendente); R<sub>se</sub> = 0,04 m²K/W verso l'esterno; verso ambienti non esterni R<sub>se</sub> = R<sub>si</sub>. Con intercapedine fortemente ventilata gli strati esterni all'intercapedine sono trascurati e R<sub>se</sub> = R<sub>si</sub>.</p>
+      <h2>4.2 Criteri di verifica</h2><ul>${CRITERI.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
+    // 5
+    h += `<h1>5. Verifica degli elementi di involucro</h1><p>Nei paragrafi seguenti ogni elemento è descritto dal punto di vista costruttivo e verificato. Le sezioni sono rappresentate dall'interno verso l'esterno; colori e retini identificano i materiali.</p>`;
+    D.forEach((d, i) => {
+      const { r, el, strat, amb, g, mm, mese } = d, m = r.model, cm = commenti(d), n = i + 1, T = TH.charts.temperatureMesi(m, g);
+      h += `<h1${i === 0 ? ' class="nb"' : ''}>5.${n} ${esc(el.nome)}</h1><p>Elemento di tipo <b>${nTipo[strat.tipo] || strat.tipo}</b> (stratigrafia «${esc(strat.nome)}»), confinante con <b>${esc(amb.nome)}</b> (${nAmb[amb.tipo]}), esposizione ${el.orient === 'N' ? 'Nord' : 'Est / Sud / Ovest / orizzontale'}.
+        Il pacchetto è composto da ${m.layers.length} strati per uno spessore totale di ${fmt(m.spessore * 1000, 1)} mm${m.ventilata ? ' (gli strati esterni all\'intercapedine fortemente ventilata non sono considerati)' : ''}.</p>
+        <h2>5.${n}.1 Stratigrafia e caratteristiche dei materiali</h2>
+        <figure>${TH.charts.sezione(m).replace('width="100%"', 'style="max-width:' + (m.dir === 'h' ? '95mm' : '120mm') + '"')}<figcaption>Fig. 5.${n}.1 – Sezione del pacchetto (interno → esterno), spessori in mm.</figcaption></figure>
+        <table><tr><th>N.</th><th>Strato (dall'interno)</th><th>s [mm]</th><th>λ [W/mK]</th><th>ρ [kg/m³]</th><th>μ [–]</th><th>R [m²K/W]</th><th>U<sub>strato</sub> = 1/R [W/m²K]</th><th>s<sub>d</sub> [m]</th></tr>
+        <tr><td></td><td><i>Resistenza superficiale interna R<sub>si</sub></i></td><td></td><td></td><td></td><td></td><td class="n">${fmt(m.Rsi, 3)}</td><td></td><td></td></tr>
+        ${m.layers.map((l, k) => `<tr><td>${k + 1}</td><td>${esc(l.nome)}${l.vent ? ' (fortemente ventilata)' : ''}</td><td class="n">${fmt(l.d * 1000, 1)}</td><td class="n">${l.gap ? '–' : fmt(l.lambda, 3)}</td><td class="n">${l.gap ? '–' : fmt(l.rho, 0)}</td><td class="n">${l.gap ? '–' : fmt(l.mu, 0)}</td><td class="n">${fmt(l.R, 3)}</td><td class="n">${fmt(1 / l.R, 3)}</td><td class="n">${fmt(l.sd, 3)}</td></tr>`).join('')}
+        <tr><td></td><td><i>Resistenza superficiale esterna R<sub>se</sub></i></td><td></td><td></td><td></td><td></td><td class="n">${fmt(m.Rse, 3)}</td><td></td><td></td></tr>
+        <tr><th></th><th>Totale</th><th class="n">${fmt(m.spessore * 1000, 1)}</th><th></th><th></th><th></th><th class="n">${fmt(m.RT, 3)}</th><th class="n">${fmt(m.U, 3)}</th><th class="n">${fmt(m.sdTot, 2)}</th></tr></table>
+        <h2>5.${n}.2 Trasmittanza termica</h2><p>${cm.U}</p>
+        <table><tr><th>Grandezza</th><th>Valore</th></tr><tr><td>R<sub>T</sub> [m²K/W]</td><td class="n">${fmt(m.RT, 3)}</td></tr><tr><td>U [W/m²K]</td><td class="n">${fmt(r.U, 3)}</td></tr>${r.b !== 1 ? `<tr><td>b · U [W/m²K]</td><td class="n">${fmt(r.Ucmp, 3)}</td></tr>` : ''}<tr><td>U limite zona ${P.clima.zona} [W/m²K]</td><td class="n">${r.Ulim == null ? 'n.a.' : fmt(r.Ulim, 2)}</td></tr><tr><td>Esito</td><td>${E(r.Uok)}</td></tr></table>
+        <h2>5.${n}.3 Massa superficiale e comportamento dinamico estivo</h2><p>${cm.est}</p>
+        <table><tr><th>Grandezza</th><th>Valore</th></tr><tr><td>Massa superficiale M<sub>s</sub> [kg/m²]</td><td class="n">${fmt(r.Ms, 0)}</td></tr><tr><td>Trasmittanza termica periodica Y<sub>ie</sub> [W/m²K]</td><td class="n">${fmt(r.dyn.Yie, 3)}</td></tr><tr><td>Fattore di attenuazione f<sub>a</sub> [–]</td><td class="n">${fmt(r.dyn.f, 3)}</td></tr><tr><td>Sfasamento φ [h]</td><td class="n">${fmt(r.dyn.sfasamento, 1)}</td></tr><tr><td>Capacità termica areica interna κ<sub>1</sub> / esterna κ<sub>2</sub> [kJ/m²K]</td><td class="n">${fmt(r.dyn.k1, 0)} / ${fmt(r.dyn.k2, 0)}</td></tr><tr><td>Esito verifica estiva</td><td>${r.esente ? 'esente (esposizione Nord)' : E(r.estiva)}</td></tr></table>
+        <h2>5.${n}.4 Andamento della temperatura negli strati nel corso dell'anno</h2>
+        <p>Il grafico riporta, per ciascun mese, la temperatura sulle superfici e alle interfacce tra gli strati, calcolata in regime stazionario con le condizioni al contorno mensili (θ<sub>i</sub> = ${fmt(P.thetaI, 1)} °C).</p>
+        <figure>${T.svg}<div class="leg">${T.legenda.map(l => `<div><span class="sw" style="border-top-style:${l.dash ? 'dashed' : 'solid'};border-color:${l.col}"></span>${esc(l.name)}</div>`).join('')}</div><figcaption>Fig. 5.${n}.2 – Temperatura alle interfacce, andamento mensile.</figcaption></figure>
+        <table class="mt"><tr><th>Piano</th>${MESI.map(x => `<th>${x}</th>`).join('')}</tr>${T.nodi.map((j, k) => `<tr><td>${k === 0 ? 'Sup. interna' : k === T.nodi.length - 1 ? 'Sup. esterna' : 'Interf. ' + k + '/' + (k + 1)}</td>${g.mesi.map(o => `<td class="n">${fmt(o.theta[j], 1)}</td>`).join('')}</tr>`).join('')}</table>
+        <h2>5.${n}.5 Verifica termoigrometrica</h2><h3>Condensa superficiale e muffa</h3><p>${cm.muffa}</p>
+        <h3>Condensa interstiziale (diagramma di Glaser)</h3><p>${cm.gla} I diagrammi seguenti si riferiscono al mese ${MESI[mm]}${g.assente ? '' : ' (mese di massimo accumulo)'}, con θ<sub>e</sub> = ${fmt(r.bc[mm].thetaE, 1)} °C.</p>
+        <div class="two"><figure>${TH.charts.temperature(m, mese)}<figcaption>Fig. 5.${n}.3 – Temperatura negli strati (${MESI[mm]}).</figcaption></figure><figure>${TH.charts.glaser(m, mese)}<figcaption>Fig. 5.${n}.4 – Pressione di vapore e di saturazione (${MESI[mm]}).</figcaption></figure></div>
+        <h3>Andamento dell'umidità negli strati</h3><p>Il rapporto φ = p / p<sub>sat</sub> descrive l'umidità relativa all'interno del pacchetto: valori ≥ 80 % indicano condizioni favorevoli alla crescita di muffe, il 100 % indica condensazione.</p>
+        <div class="two"><figure>${TH.charts.umidita(m, mese)}<figcaption>Fig. 5.${n}.5 – Umidità relativa negli strati (${MESI[mm]}).</figcaption></figure>${mese.maxM > 1e-9 ? `<figure>${TH.charts.acquaStrati(m, mese)}<figcaption>Fig. 5.${n}.6 – Condensa accumulata per piano (${MESI[mm]}).</figcaption></figure>` : '<div></div>'}</div>
+        ${g.assente ? '' : `<figure>${TH.charts.condensa(g)}<figcaption>Fig. 5.${n}.7 – Accumulo mensile di condensa nell'anno (ottobre → settembre).</figcaption></figure>`}
+        <table class="mt"><tr><th></th>${MESI.map(x => `<th>${x}</th>`).join('')}</tr><tr><th>θ<sub>e</sub> [°C]</th>${r.bc.map(b => `<td class="n">${fmt(b.thetaE, 1)}</td>`).join('')}</tr><tr><th>Condensa del mese [g/m²]</th>${g.mesi.map(o => `<td class="n">${fmt(o.g * 1000, 0)}</td>`).join('')}</tr><tr><th>Accumulo [g/m²]</th>${g.mesi.map(o => `<td class="n">${fmt(o.maxM * 1000, 0)}</td>`).join('')}</tr></table>
+        <div class="box"><b>Esito dell'elemento:</b> trasmittanza ${E(r.Uok)} · estiva ${r.esente ? 'esente' : E(r.estiva)} · muffa superficiale ${E(r.muffa.ok, 'ASSENTE', 'RISCHIO')} · Glaser ${g.assente ? '<span class="ok">NESSUNA CONDENSA</span>' : E(g.ok, 'AMMISSIBILE E SMALTITA', 'NON VERIFICATO')}</div>`;
+    });
+    // 6
+    h += `<h1>6. Sintesi degli esiti</h1><table><tr><th>Elemento</th><th>U [W/m²K]</th><th>U lim.</th><th>Trasm.</th><th>M<sub>s</sub> / Y<sub>ie</sub></th><th>Estiva</th><th>Muffa</th><th>Glaser</th></tr>
+      ${D.map(d => { const r = d.r; return `<tr><td>${esc(d.el.nome)}</td><td class="n">${fmt(r.Ucmp, 3)}</td><td class="n">${r.Ulim == null ? 'n.a.' : fmt(r.Ulim, 2)}</td><td>${E(r.Uok)}</td><td class="n">${fmt(r.Ms, 0)} / ${fmt(r.dyn.Yie, 3)}</td><td>${r.esente ? 'esente' : E(r.estiva)}</td><td>${E(r.muffa.ok, 'ASSENTE', 'RISCHIO')}</td><td>${d.g.assente ? 'nessuna condensa' : E(d.g.ok, 'AMMISSIBILE', 'NON VER.')}</td></tr>`; }).join('')}</table>`;
+    // 7
+    h += `<h1>7. Note, limiti e avvertenze</h1><ul><li>I dati climatici di base dell'applicativo sono indicativi (profilo mensile sinusoidale e gradi giorno in parte stimati): per la relazione ufficiale utilizzare i valori UNI 10349 / DPR 412/93.</li>
+      <li>I valori limite di trasmittanza sono riportati a memoria dai decreti citati e devono essere verificati sul testo vigente.</li><li>Le proprietà dei materiali (λ, ρ, c, μ) derivano da banche dati generiche (UNI 10351 / UNI EN ISO 10456); per i prodotti commerciali fare riferimento alle schede tecniche e alle dichiarazioni di prestazione.</li>
+      <li>Non sono modellati i ponti termici, lo scambio termico con il terreno (UNI EN ISO 13370), i serramenti e gli effetti di accumulo di umidità nei materiali.</li><li>La presente relazione non sostituisce l'APE né la relazione tecnica ex Legge 10/1991, che richiedono software certificato e dati ufficiali.</li></ul>
+      <p style="margin-top:20mm">Data: ${oggi()}<br><br>Il tecnico: ______________________________</p></body></html>`;
+    return h;
+  }
+
+  /* Versione testuale (TXT): colonne fisse, righe a 80 caratteri. */
+  function relazioneTXT() {
+    const D = datiRel(), c = P.clima, set = limitiSet()[P.limitSet], W = 80;
+    const strip = t => t.replace(/<sub>/g, '_').replace(/<\/sub>/g, '').replace(/<sup>/g, '^').replace(/<\/sup>/g, '').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+    const wrap = (t, ind = '') => { const w = t.split(/\s+/), out = []; let l = ind; w.forEach(x => { if ((l + x).length > W) { out.push(l.trimEnd()); l = ind + x + ' '; } else l += x + ' '; }); out.push(l.trimEnd()); return out.join('\n'); };
+    const R = (t, n) => String(t).padStart(n), L = (t, n) => String(t).slice(0, n).padEnd(n), hr = ch => ch.repeat(W);
+    const o = [], P_ = (...x) => o.push(...x);
+    const H1 = t => P_('', hr('='), t.toUpperCase(), hr('='), '');
+    const H2 = t => P_('', t, hr('-'));
+    const f = (v, n = 3) => fmt(v, n), esito = (v, a = 'VERIFICATO', b = 'NON VERIFICATO') => v == null ? 'n.a.' : v ? a : b;
+    P_(hr('='), 'RELAZIONE TECNICA - VERIFICA TERMOIGROMETRICA DELL\'INVOLUCRO EDILIZIO', hr('='), `Progetto      : ${P.nome}`, `Committente   : ${P.committente || '-'}`, `Localita'     : ${c.nome}${c.prov ? ' (' + c.prov + ')' : ''}`,
+      `Zona climatica: ${c.zona}  -  Gradi giorno: ${f(c.GG, 0)}  -  lat ${c.lat} lon ${c.lon} alt ${c.alt} m`, `Condizioni int.: theta_i = ${f(P.thetaI, 1)} C, phi_i = ${f(P.phiI, 0)} %`, `Valori limite : ${set.label}`, `Data          : ${oggi()}`);
+    H1('1. Premessa e scopo');
+    P_(wrap(`La presente relazione documenta la verifica termoigrometrica degli elementi di involucro del progetto "${P.nome}" (${c.nome}, zona ${c.zona}). Per ogni elemento sono riportati stratigrafia, trasmittanza, massa superficiale, comportamento dinamico estivo, andamento delle temperature negli strati e verifiche igrometriche (condensa superficiale e interstiziale), secondo UNI EN ISO 6946, 13788 e 13786. Elementi verificati: ${D.length}.`));
+    H1('2. Normativa di riferimento');
+    TH.norme.forEach(n => P_(wrap(`- [${n[0]}] ${n[1]}: ${n[2]} (uso: ${n[3]})`, '  ').replace(/^ {2}-/, '-')));
+    H1('3. Dati di progetto e climatici');
+    P_(`Comune: ${c.nome}; GG ${f(c.GG, 0)}${c.stima ? ' (stimati)' : ''}; zona ${c.zona}`, `Limite condensa interstiziale: ${f(P.limiteCondensa, 2)} kg/m2`, '', 'Dati climatici mensili:', '        ' + MESI.map(m => R(m, 6)).join(''),
+      'T_e [C]' + c.theta.map(v => R(f(v, 1), 6)).join(''), 'phi_e[%]' + c.phi.map(v => R(f(v, 0), 6)).join(''), '', 'Ambienti confinanti:');
+    P.ambienti.forEach(a => P_(`- ${a.nome}: ${nAmb[a.tipo] || a.tipo}${a.tipo === 'non_climatizzato' ? ', b = ' + f(a.b ?? 0.5, 2) : a.tipo === 'terreno' || a.tipo === 'climatizzato' ? ', theta = ' + a.theta + ' C, phi = ' + a.phi + ' %' + (a.tipo === 'terreno' ? ', b = ' + f(a.b ?? 1, 2) : '') : ''}`));
+    H1('4. Metodo di calcolo e formule impiegate');
+    P_(wrap('Regime stazionario per trasmittanza e verifica di Glaser (accumulo mensile ottobre-settembre); regime periodico (T = 24 h) per le grandezze dinamiche. Flusso monodimensionale; non sono considerati ponti termici, scambio con il terreno (ISO 13370) e serramenti.'), '');
+    FORMULE.forEach((fm, i) => { P_(`(${i + 1}) ${fm[0]}  [${fm[3]}]`, wrap(fm[2], '      '), ''); });
+    P_('Resistenze superficiali (ISO 6946): R_si = 0,13 (flusso orizzontale), 0,10 (ascendente), 0,17 (discendente) m2K/W;', 'R_se = 0,04 verso l\'esterno; verso ambienti non esterni R_se = R_si.', '', 'Criteri di verifica:');
+    CRITERI.forEach(x => P_(wrap('- ' + x, '  ').replace(/^ {2}-/, '-')));
+    H1('5. Verifica degli elementi di involucro');
+    D.forEach((d, i) => { const { r, el, strat, amb, g, mm, mese } = d, m = r.model, cm = commenti(d), n = i + 1, T = TH.charts.temperatureMesi(m, g);
+      H2(`5.${n} ${el.nome}`);
+      P_(wrap(`Elemento: ${nTipo[strat.tipo] || strat.tipo}; stratigrafia "${strat.nome}"; confine: ${amb.nome} (${nAmb[amb.tipo]}); esposizione ${el.orient === 'N' ? 'Nord' : 'E/S/O/orizzontale'}. Strati: ${m.layers.length}; spessore totale ${f(m.spessore * 1000, 1)} mm.`), '');
+      P_(`5.${n}.1 Stratigrafia (dall'interno verso l'esterno)`, '', ' N. ' + L('Strato', 34) + R('s[mm]', 7) + R('lambda', 8) + R('rho', 6) + R('mu', 6) + R('R', 7) + R('U=1/R', 8), hr('-'));
+      P_('    ' + L('Rsi (res. sup. interna)', 34) + R('', 7) + R('', 8) + R('', 6) + R('', 6) + R(f(m.Rsi, 3), 7));
+      m.layers.forEach((l, k) => P_(R(k + 1, 3) + ' ' + L(l.nome, 34) + R(f(l.d * 1000, 1), 7) + R(l.gap ? '-' : f(l.lambda, 3), 8) + R(l.gap ? '-' : f(l.rho, 0), 6) + R(l.gap ? '-' : f(l.mu, 0), 6) + R(f(l.R, 3), 7) + R(f(1 / l.R, 3), 8)));
+      P_('    ' + L('Rse (res. sup. esterna)', 34) + R('', 7) + R('', 8) + R('', 6) + R('', 6) + R(f(m.Rse, 3), 7), hr('-'), '    ' + L('TOTALE', 34) + R(f(m.spessore * 1000, 1), 7) + R('', 8) + R('', 6) + R('', 6) + R(f(m.RT, 3), 7) + R(f(m.U, 3), 8), '');
+      P_('Rappresentazione schematica del pacchetto (larghezza proporzionale allo spessore):');
+      const tot = m.layers.reduce((s, l) => s + Math.max(l.d, 0.012), 0); m.layers.forEach((l, k) => P_(`  ${R(k + 1, 2)} |${(l.gap ? '.' : '#').repeat(Math.max(1, Math.round(Math.max(l.d, 0.012) / tot * 40)))}  ${l.nome} (${f(l.d * 1000, 1)} mm)`)); P_('     interno -> esterno', '');
+      P_(`5.${n}.2 Trasmittanza termica`, wrap(cm.U), '', `5.${n}.3 Massa superficiale e comportamento dinamico`, wrap(cm.est),
+        `   M_s = ${f(r.Ms, 0)} kg/m2; Y_ie = ${f(r.dyn.Yie)} W/m2K; f_a = ${f(r.dyn.f)}; sfasamento = ${f(r.dyn.sfasamento, 1)} h; kappa_1 = ${f(r.dyn.k1, 0)}, kappa_2 = ${f(r.dyn.k2, 0)} kJ/m2K`, '');
+      P_(`5.${n}.4 Andamento della temperatura negli strati [C]`, '       ' + MESI.map(x => R(x, 6)).join(''));
+      T.nodi.forEach((j, k) => P_(L(k === 0 ? 'Sup.int' : k === T.nodi.length - 1 ? 'Sup.est' : 'Int.' + k + '/' + (k + 1), 7) + g.mesi.map(q => R(f(q.theta[j], 1), 6)).join('')));
+      P_('', `5.${n}.5 Verifica termoigrometrica`, wrap(cm.muffa), wrap(cm.gla));
+      P_('  Mese critico: ' + MESI[mm], '       ' + MESI.map(x => R(x, 6)).join(''), 'T_e[C]' + r.bc.map(b => R(f(b.thetaE, 1), 6)).join(''), 'cond.g/m2' + g.mesi.map(q => R(f(q.g * 1000, 0), 6)).join('').slice(0), 'accum.g/m2' + g.mesi.map(q => R(f(q.maxM * 1000, 0), 6)).join(''));
+      P_('', 'Umidita\' relativa negli strati (mese ' + MESI[mm] + '), phi = p / p_sat [%]:');
+      const pj = m.nodes.map((nd, j) => j).filter((j, k, a) => k === 0 || k === a.length - 1 || m.nodes[j].layer !== m.nodes[j + 1].layer);
+      pj.forEach(j => P_(`  x = ${R(f(m.nodes[j].x * 1000, 0), 4)} mm  theta = ${R(f(mese.theta[j], 1), 6)} C   phi = ${R(f(Math.min(100, mese.p[j] / mese.ps[j] * 100), 0), 4)} %`));
+      P_('', `ESITO: trasmittanza ${esito(r.Uok)} | estiva ${r.esente ? 'esente' : esito(r.estiva)} | muffa ${esito(r.muffa.ok, 'ASSENTE', 'RISCHIO')} | Glaser ${g.assente ? 'NESSUNA CONDENSA' : esito(g.ok, 'AMMISSIBILE', 'NON VERIFICATO')}`); });
+    H1('6. Sintesi degli esiti');
+    P_(L('Elemento', 30) + R('U', 7) + R('Ulim', 6) + '  Trasm.' + '  Estiva' + '  Muffa' + '  Glaser', hr('-'));
+    D.forEach(d => { const r = d.r; P_(L(d.el.nome, 30) + R(f(r.Ucmp, 3), 7) + R(r.Ulim == null ? 'n.a.' : f(r.Ulim, 2), 6) + '  ' + L(esito(r.Uok, 'OK', 'NO'), 6) + '  ' + L(r.esente ? 'esente' : esito(r.estiva, 'OK', 'NO'), 6) + '  ' + L(esito(r.muffa.ok, 'OK', 'RISCHIO'), 6) + '  ' + (d.g.assente ? 'nessuna cond.' : esito(d.g.ok, 'OK', 'NO'))); });
+    H1('7. Note, limiti e avvertenze');
+    ['Dati climatici indicativi (profilo sinusoidale, GG in parte stimati): usare UNI 10349 / DPR 412 per la relazione ufficiale.', 'Valori limite di trasmittanza riportati a memoria: verificare sul testo vigente dei decreti.', 'Proprieta\' dei materiali da banche dati generiche: per prodotti commerciali usare schede tecniche / DoP.', 'Non modellati: ponti termici, scambio con il terreno (ISO 13370), serramenti, accumulo di umidita\' nei materiali.', 'La relazione non sostituisce APE e relazione tecnica ex Legge 10/1991.'].forEach(x => P_(wrap('- ' + x, '  ').replace(/^ {2}-/, '-')));
+    P_('', `Data: ${oggi()}`, '', 'Il tecnico: ______________________________');
+    return o.join('\n') + '\n';
+  }
+  function stampaPdf(html) {
+    const fr = document.createElement('iframe'); fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(fr);
+    const d = fr.contentDocument; d.open(); d.write(html); d.close();
+    setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { toast('Stampa non disponibile in questo ambiente'); } setTimeout(() => fr.remove(), 120000); }, 500);
+  }
+  function generaRelazione() {
+    if (!P.elementi.length) return toast('Aggiungi almeno un elemento da verificare');
+    if (!repOpt.pdf && !repOpt.txt) return toast('Seleziona almeno un formato (PDF o TXT)');
+    const base = 'Relazione_' + (P.nome || 'progetto').replace(/\W+/g, '_');
+    if (repOpt.txt) download(base + '.txt', relazioneTXT(), 'text/plain;charset=utf-8');
+    if (repOpt.pdf) { toast('Nella finestra di stampa scegli «Salva come PDF» (formato A4)'); stampaPdf(relazioneHTML()); }
+  }
+  TH.relazione = { html:relazioneHTML, txt:relazioneTXT };
 
   /* ---------- normativa ---------- */
   function vNorme() {
@@ -936,6 +1158,7 @@ TH.norme = [
     if (d.a === 'comune') { const c = trovaComune(t.value); if (!c) return toast('Comune non presente: compila i dati e salvalo nel database'); P.comuneId = c.id; P.clima = climaDa(c); save(); return render(); }
     if (d.a === 'gg') { P.clima.GG = num(t.value); P.clima.zona = C.zonaDaGG(P.clima.GG); }
     if (d.a === 'arq') { vArchivio.q = t.value; return render(); }
+    if (d.r) { repOpt[d.r] = t.checked; return; }
     if (d.a === 'sfilt') { strFilt = t.value; return render(); }
     if (d.a === 'mq') { matFilt.q = t.value; return render(); }
     if (d.a === 'mcat') { matFilt.cat = t.value; return render(); }
@@ -990,6 +1213,7 @@ TH.norme = [
       case 'delStr': if (P.elementi.some(x => x.stratId === id)) return toast('Stratigrafia usata nel progetto'); dbStr = dbStr.filter(s => s.id !== id); store.set('stratigrafie', dbStr); if (ED && ED.id === id) ED = null; return render();
       case 'addEl': { const s = stratigrafie().find(x => x.id === $('#n-str').value); P.elementi.push({ id:uid(), nome:$('#n-nome').value.trim() || s.nome, stratId:s.id, ambId:$('#n-amb').value, orient:$('#n-or').value }); save(); return render(); }
       case 'delEl': P.elementi.splice(i, 1); save(); return render();
+      case 'report': return generaRelazione();
       case 'print': return window.print();
       default: if (a.startsWith('ar')) return arAzione(a, id, t);
     }
