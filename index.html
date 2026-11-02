@@ -188,7 +188,13 @@ TH.materiali = [
   ['Coperture e esterno','Terreno vegetale (verde pensile)',1.50,1600,1500,5,100],
   ['Coperture e esterno','Vetro',1.00,2500,750,1000000,6],
   ['Terreno','Sabbia e ghiaia',2.00,1800,1000,50,100],
-  ['Terreno','Argilla / limo',1.50,1800,1000,50,100]
+  ['Terreno','Argilla / limo',1.50,1800,1000,50,100],
+  /* Prodotti "tipo" ispirati a schede pubbliche (Rockwool, Laterlite): valori indicativi, verificare sulla scheda/DoP del prodotto reale. */
+  ['Isolanti','Lana di roccia 110 doppia densità, cappotto (tipo Frontrock Extra)',0.036,110,1030,1,100],
+  ['Isolanti','Lana di roccia 125 per coperture (tipo Hardrock)',0.036,125,1030,1,100],
+  ['Isolanti','Lana di roccia 40 per pareti a secco (tipo Airrock)',0.035,40,1030,1,75],
+  ['Strutture','Calcestruzzo leggero argilla espansa 1400 (tipo Leca CLS)',0.42,1400,1000,15,60],
+  ['Intonaci e finiture','Massetto alleggerito argilla espansa 1000 (tipo Lecamix)',0.30,1000,1000,8,80]
 ].map(r => ({ id:'b-' + r[1].toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),
   cat:r[0], nome:r[1], lambda:r[2], rho:r[3], c:r[4], mu:r[5], s:r[6] }));
 
@@ -208,6 +214,41 @@ TH.materiali.unshift({ id:'aria', tipo:'aria', cat:'Intercapedini', nome:'Interc
       { matId:id('Intonaco di calce e cemento'), s:15 }, { matId:id('Blocco in cls vibrocompresso'), s:250 }, { matId:id('Intonaco di calce e cemento'), s:20 } ] },
     { id:'s-muro-isolante-interno', nome:'Muro laterizio 25 con isolante interno senza freno al vapore (errore tipico)', tipo:'parete', strati:[
       { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Lana di roccia 80'), s:50 }, { matId:id('Blocco laterizio forato 800'), s:250 }, { matId:id('Intonaco di calce e cemento'), s:20 } ] },
+    /* Pacchetti standard ispirati alle soluzioni dei produttori (marca = fonte di ispirazione). Valori indicativi. */
+    { id:'m-rw-cappotto-laterizio', marca:'Rockwool', nome:'Cappotto lana di roccia 12 cm su laterizio alveolato 30', tipo:'parete', strati:[
+      { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Blocco laterizio alveolato porizzato 800'), s:300 },
+      { matId:id('Lana di roccia 110'), s:120 }, { matId:id('Rasante su cappotto'), s:6 } ] },
+    { id:'m-rw-cappotto-cls', marca:'Rockwool', nome:'Cappotto lana di roccia 16 cm su calcestruzzo 25', tipo:'parete', strati:[
+      { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Calcestruzzo ordinario'), s:250 },
+      { matId:id('Lana di roccia 110'), s:160 }, { matId:id('Rasante su cappotto'), s:6 } ] },
+    { id:'m-rw-secco-telaio', marca:'Rockwool', nome:'Parete a telaio a secco: lana 40 (100 mm) + cappotto lana 6 cm', tipo:'parete', strati:[
+      { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Freno al vapore'), s:0.2 },
+      { matId:id('Lana di roccia 40'), s:100 }, { matId:id('Pannello OSB'), s:15 }, { matId:id('Lana di roccia 110'), s:60 }, { matId:id('Rasante su cappotto'), s:6 } ] },
+    { id:'m-rw-copertura-legno', marca:'Rockwool', nome:'Copertura in legno ventilata con lana di roccia 18 cm', tipo:'copertura', strati:[
+      { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Freno al vapore'), s:0.2 },
+      { matId:id('Lana di roccia 125'), s:180 }, { matId:id('Legno di abete'), s:25 }, { matId:'aria', s:50, vent:2 }, { matId:id('Tegole in laterizio'), s:15 } ] },
+    { id:'m-rw-portico', marca:'Rockwool', nome:'Solaio su portico: isolamento all\'intradosso con lana di roccia 12 cm', tipo:'pavimento', strati:[
+      { matId:id('Piastrelle ceramica'), s:10 }, { matId:id('Massetto cementizio'), s:60 }, { matId:id('Calcestruzzo armato'), s:200 },
+      { matId:id('Lana di roccia 110'), s:120 }, { matId:id('Rasante su cappotto'), s:6 } ] },
+    { id:'m-le-terra', marca:'Laterlite', nome:'Solaio contro terra: vespaio in argilla espansa + massetto alleggerito', tipo:'pavimento', strati:[
+      { matId:id('Piastrelle ceramica'), s:10 }, { matId:id('Massetto cementizio'), s:50 }, { matId:id('Massetto alleggerito argilla espansa'), s:100 },
+      { matId:id('Calcestruzzo armato'), s:150 }, { matId:id('Argilla espansa sfusa'), s:350 } ] },
+    { id:'m-le-copertura-piana', marca:'Laterlite', nome:'Copertura piana: massetto pendenze alleggerito + PIR + ghiaia', tipo:'copertura', strati:[
+      { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Calcestruzzo armato'), s:200 }, { matId:id('Barriera vapore polietilene'), s:0.2 },
+      { matId:id('Massetto alleggerito argilla espansa'), s:80 }, { matId:id('Poliisocianurato'), s:100 }, { matId:id('Guaina bituminosa'), s:4 }, { matId:id('Ghiaia'), s:50 } ] },
+    { id:'m-le-sottotetto', marca:'Laterlite', nome:'Solaio sottotetto non abitabile con argilla espansa sfusa 30 cm', tipo:'copertura', strati:[
+      { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Calcestruzzo armato'), s:200 }, { matId:id('Argilla espansa sfusa'), s:300 } ] },
+    { id:'m-si-divisorio', marca:'Siniat', nome:'Parete a secco doppia lastra 2+2 con lana 75 (tipo D125/M75)', tipo:'parete', strati:[
+      { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lana di roccia 40'), s:75 },
+      { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lastra di cartongesso'), s:12.5 } ] },
+    { id:'m-si-controparete', marca:'Siniat', nome:'Controparete a secco con lana 10 cm su blocco laterizio 25', tipo:'parete', strati:[
+      { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Freno al vapore'), s:0.2 },
+      { matId:id('Lana di roccia 40'), s:100 }, { matId:id('Blocco laterizio forato 800'), s:250 }, { matId:id('Intonaco di calce e cemento'), s:20 } ] },
+    { id:'m-si-secco-etics', marca:'Siniat', nome:'Parete a secco con lastra gessofibra esterna e cappotto EPS grafitato 10 cm', tipo:'parete', strati:[
+      { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Freno al vapore'), s:0.2 },
+      { matId:id('Lana di roccia 40'), s:100 }, { matId:id('Lastra gessofibra'), s:12.5 }, { matId:id('EPS grafitato'), s:100 }, { matId:id('Rasante acrilico'), s:3 } ] },
+    { id:'m-si-controsoffitto', marca:'Siniat', nome:'Controsoffitto a secco con lana 20 cm sotto sottotetto non abitabile', tipo:'copertura', strati:[
+      { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Freno al vapore'), s:0.2 }, { matId:id('Lana di roccia 40'), s:200 } ] },
     { id:'s-parete-secco-facciata', nome:'Parete a secco con facciata ventilata', tipo:'parete', strati:[
       { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lastra di cartongesso'), s:12.5 },
       { matId:id('Freno al vapore'), s:0.2 }, { matId:id('Lana di roccia 80'), s:100 },
@@ -652,7 +693,7 @@ TH.norme = [
   }
   let P = store.get('progetto', null) || nuovoProgetto();
   const save = () => store.set('progetto', P);
-  let tab = 'progetto', ED = null, MF = null, matFilt = { q:'', cat:'' };
+  let strFilt = '', tab = 'progetto', ED = null, MF = null, matFilt = { q:'', cat:'' };
 
   const setPath = (o, path, v) => { const k = path.split('.'); const last = k.pop(); let t = o; k.forEach(p => t = t[p]); t[last] = v; };
   const opts = (list, sel, f = x => x.id, l = x => x.nome) => list.map(x => `<option value="${esc(f(x))}"${f(x) === sel ? ' selected' : ''}>${esc(l(x))}</option>`).join('');
@@ -744,7 +785,8 @@ TH.norme = [
       <div><b>${fmt(d.Yie)}</b><span>Y<sub>ie</sub> [W/m²K]</span></div><div><b>${fmt(d.sfasamento, 1)}</b><span>sfasamento [h]</span></div></div>`;
   }
   function vStrat() {
-    const all = stratigrafie(), m = matById();
+    const tutte = stratigrafie(), m = matById(), marche = [...new Set(tutte.map(x => x.marca).filter(Boolean))];
+    const all = tutte.filter(x => !strFilt || (strFilt === '_base' ? x.base && !x.marca : strFilt === '_mie' ? !x.base : x.marca === strFilt));
     let ed = '<p class="note">Seleziona una stratigrafia a sinistra o creane una nuova.</p>';
     if (ED) ed = `<div class="grid"><label>Nome<input data-e="nome" value="${esc(ED.nome)}"></label>
       <label>Tipologia<select data-e="tipo">${[['parete', 'Parete verticale (flusso orizzontale)'], ['copertura', 'Copertura / soffitto (flusso ascendente)'], ['pavimento', 'Pavimento / solaio (flusso discendente)']].map(([k, v]) => `<option value="${k}"${k === ED.tipo ? ' selected' : ''}>${v}</option>`).join('')}</select></label></div>
@@ -754,7 +796,7 @@ TH.norme = [
       <td style="white-space:nowrap"><button class="i" data-a="up" data-i="${i}">↑</button> <button class="i" data-a="down" data-i="${i}">↓</button> <button class="i" data-a="delL" data-i="${i}">✕</button></td></tr>`).join('')}</table>
       <p class="row"><button class="b sec" data-a="addL">+ Aggiungi strato</button><button class="b" data-a="saveStr">Salva nel database</button><button class="b sec" data-a="newStr">Nuova</button></p>
       <div id="prev">${anteprima(ED)}</div>`;
-    return `<div class="split"><div class="card"><h2>Libreria</h2><ul class="list">${all.map(s => `<li class="${ED && ED.id === s.id ? 'on' : ''}" data-a="selStr" data-id="${s.id}"><span>${esc(s.nome)}</span><span>${s.base ? '<span class="tag">base</span>' : `<span class="tag">mia</span> <button class="i" data-a="delStr" data-id="${s.id}">✕</button>`}</span></li>`).join('')}</ul>
+    return `<div class="split"><div class="card"><h2>Libreria</h2><label>Mostra<select data-a="sfilt"><option value="">Tutte (${tutte.length})</option><option value="_base"${strFilt === '_base' ? ' selected' : ''}>Esempi base</option>${marche.map(k => `<option${k === strFilt ? ' selected' : ''}>${esc(k)}</option>`).join('')}<option value="_mie"${strFilt === '_mie' ? ' selected' : ''}>Le mie</option></select></label><ul class="list">${all.map(s => `<li class="${ED && ED.id === s.id ? 'on' : ''}" data-a="selStr" data-id="${s.id}"><span>${esc(s.nome)}</span><span>${s.base ? `<span class="tag">${esc(s.marca ? 'tipo ' + s.marca : 'base')}</span>` : `<span class="tag">mia</span> <button class="i" data-a="delStr" data-id="${s.id}">✕</button>`}</span></li>`).join('')}</ul>
       <p><button class="b" data-a="newStr">+ Nuova stratigrafia</button></p></div>
       <div class="card"><h2>Editor stratigrafia</h2>${ed}</div></div>`;
   }
@@ -894,6 +936,7 @@ TH.norme = [
     if (d.a === 'comune') { const c = trovaComune(t.value); if (!c) return toast('Comune non presente: compila i dati e salvalo nel database'); P.comuneId = c.id; P.clima = climaDa(c); save(); return render(); }
     if (d.a === 'gg') { P.clima.GG = num(t.value); P.clima.zona = C.zonaDaGG(P.clima.GG); }
     if (d.a === 'arq') { vArchivio.q = t.value; return render(); }
+    if (d.a === 'sfilt') { strFilt = t.value; return render(); }
     if (d.a === 'mq') { matFilt.q = t.value; return render(); }
     if (d.a === 'mcat') { matFilt.cat = t.value; return render(); }
     if (d.a === 'mese') { P.elementi[+d.i].mese = +t.value; save(); return render(); }
