@@ -520,50 +520,82 @@ TH.norme = [
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle">${defsRetini(pre, [st.pat])}${riempi(pre, st, 0.5, 0.5, w - 1, h - 1)}<rect x=".5" y=".5" width="${w - 1}" height="${h - 1}" fill="none" stroke="#667"/></svg>`;
   }
 
-  /* Sezione della stratigrafia: larghezza proporzionale (con minimo), quote in mm, legenda materiali. */
+  /* Sezione della stratigrafia.
+     Parete (flusso orizzontale): strati verticali, interno a sinistra, figura alta e slanciata.
+     Copertura / pavimento (flusso verticale): strati orizzontali impilati come in un solaio
+     (copertura: interno in basso, esterno in alto; pavimento: interno in alto, terreno in basso). */
   function sezione(model) {
-    const W = 420, L = model.layers; if (!L.length) return '';
-    const pre = 's' + (++uidP) + '-', sts = L.map(stile), rows = Math.ceil(L.length / 2), H = 110 + rows * 14;
-    const tot = L.reduce((s, l) => s + Math.max(l.d, 0.012), 0);
-    let x = 10, out = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Sezione stratigrafia">${defsRetini(pre, sts.map(t => t.pat))}<text x="10" y="12">INTERNO</text><text x="${W - 10}" y="12" text-anchor="end">ESTERNO</text>`;
-    L.forEach((l, i) => {
-      const w = Math.max(l.d, 0.012) / tot * (W - 20);
-      out += `<g>${riempi(pre, sts[i], x, 20, w, 50)}<rect x="${x}" y="20" width="${w}" height="50" fill="none" stroke="#667" ${l.gap ? 'stroke-dasharray="3"' : ''}/><title>${esc(l.nome)}</title></g>`;
-      out += `<text x="${x + w / 2}" y="84" text-anchor="middle" font-size="9">${Math.round(l.d * 1000 * 10) / 10}</text>`;
-      x += w;
-    });
-    L.forEach((l, i) => { const lx = 10 + (i % 2) * 205, ly = 96 + Math.floor(i / 2) * 14;
+    const L = model.layers; if (!L.length) return '';
+    const pre = 's' + (++uidP) + '-', sts = L.map(stile), rows = Math.ceil(L.length / 2);
+    const tot = L.reduce((s, l) => s + Math.max(l.d, 0.012), 0), vert = model.dir === 'h';
+    const W = 420, gh = vert ? 280 : 190, H = (vert ? gh + 60 : gh + 40) + rows * 14 + 22;
+    let out = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Sezione stratigrafia">${defsRetini(pre, sts.map(t => t.pat))}`;
+    const leg = L.map((l, i) => ({ l, i }));
+    if (vert) {
+      const x0 = 115, aw = 190, y0 = 24; let x = x0;
+      out += `<text x="${x0}" y="14" text-anchor="start">INTERNO</text><text x="${x0 + aw}" y="14" text-anchor="end">ESTERNO</text>`;
+      L.forEach((l, i) => { const w = Math.max(l.d, 0.012) / tot * aw;
+        out += `<g>${riempi(pre, sts[i], x, y0, w, gh)}<rect x="${x}" y="${y0}" width="${w}" height="${gh}" fill="none" stroke="#667" ${l.gap ? 'stroke-dasharray="3"' : ''}/><title>${esc(l.nome)}</title></g>`
+          + `<text x="${x + w / 2}" y="${y0 + gh + 12}" text-anchor="middle" font-size="9">${Math.round(l.d * 1000 * 10) / 10}</text>`; x += w; });
+    } else {
+      const ah = gh, ax = 90, aw = 240, y0 = 22, up = model.dir === 'up'; let y = up ? y0 + ah : y0;
+      out += `<text x="${ax - 6}" y="${up ? y0 + ah : y0 + 8}" text-anchor="end">INTERNO</text><text x="${ax - 6}" y="${up ? y0 + 8 : y0 + ah}" text-anchor="end">${up ? 'ESTERNO' : 'TERRENO / ESTERNO'}</text>`;
+      L.forEach((l, i) => { const h = Math.max(l.d, 0.012) / tot * ah; if (up) y -= h;
+        out += `<g>${riempi(pre, sts[i], ax, y, aw, h)}<rect x="${ax}" y="${y}" width="${aw}" height="${h}" fill="none" stroke="#667" ${l.gap ? 'stroke-dasharray="3"' : ''}/><title>${esc(l.nome)}</title></g>`
+          + `<text x="${ax + aw + 6}" y="${y + h / 2 + 3}" font-size="9">${Math.round(l.d * 1000 * 10) / 10}</text>`; if (!up) y += h; });
+      out += `<path d="M${ax - 8},${y0} h8 M${ax - 8},${y0 + ah} h8" stroke="#667"/>`;
+    }
+    const ly0 = (vert ? gh + 40 : gh + 36);
+    leg.forEach(({ l, i }) => { const lx = 10 + (i % 2) * 205, ly = ly0 + Math.floor(i / 2) * 14;
       out += `${riempi(pre, sts[i], lx, ly, 14, 9)}<rect x="${lx}" y="${ly}" width="14" height="9" fill="none" stroke="#667"/><text x="${lx + 19}" y="${ly + 8}" font-size="9">${i + 1}. ${esc(l.nome.length > 36 ? l.nome.slice(0, 35) + '…' : l.nome)}</text>`; });
     return out + `<text x="10" y="${H - 4}" font-size="10">spessori in mm · strati: ${L.length}${model.ventilata ? ' (oltre intercapedine ventilata ignorati)' : ''}</text></svg>`;
   }
 
   /* Grafico a linee generico. series: {pts:[[x,y]], col, dash, name} ; vl: linee verticali x. */
-  function linee({ series, vl = [], xl, yl, W = 420, H = 260, ydec = 0 }) {
+  function linee({ series, vl = [], bands = [], xl, yl, W = 420, H = 260, ydec = 0, pts = false }) {
     const m = { l:48, r:12, t:12, b:34 };
     const xs = series.flatMap(s => s.pts.map(p => p[0])), ys = series.flatMap(s => s.pts.map(p => p[1]));
     let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
     if (x1 === x0) x1 = x0 + 1; const pad = (y1 - y0) * 0.08 || 1; y0 -= pad; y1 += pad;
     const X = v => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r), Y = v => H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
     let o = `<svg viewBox="0 0 ${W} ${H}" width="100%"><rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="none" stroke="#889" stroke-opacity=".5"/>`;
+    if (bands.length) { const pre = 'b' + (++uidP) + '-'; o += defsRetini(pre, bands.map(t => t.st.pat)) + '<g opacity=".4">'
+      + bands.map(t => riempi(pre, t.st, X(t.x0), m.t, Math.max(0.5, X(t.x1) - X(t.x0)), H - m.t - m.b)).join('') + '</g>'; }
     for (let i = 0; i <= 4; i++) { const v = y0 + (y1 - y0) * i / 4; o += `<text x="${m.l - 4}" y="${Y(v) + 3}" text-anchor="end">${v.toFixed(ydec)}</text><line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#889" stroke-opacity=".2"/>`; }
     for (let i = 0; i <= 4; i++) { const v = x0 + (x1 - x0) * i / 4; o += `<text x="${X(v)}" y="${H - m.b + 13}" text-anchor="middle">${v < 10 ? v.toFixed(2) : v.toFixed(0)}</text>`; }
     vl.forEach(v => o += `<line x1="${X(v)}" x2="${X(v)}" y1="${m.t}" y2="${H - m.b}" stroke="#889" stroke-opacity=".45" stroke-dasharray="2"/>`);
     series.forEach(s => o += `<polyline fill="none" stroke="${s.col}" stroke-width="2" ${s.dash ? 'stroke-dasharray="5 3"' : ''} points="${s.pts.map(p => X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1)).join(' ')}"/>`);
+    if (pts) series.forEach(s => s.pts.forEach(p => { if (p[1] > y0 + pad * 1.01) o += `<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="2.5" fill="${s.col}"/>`; }));
     series.forEach((s, i) => o += `<rect x="${m.l + 8 + i * 118}" y="${m.t + 6}" width="10" height="3" fill="${s.col}"/><text x="${m.l + 22 + i * 118}" y="${m.t + 11}">${esc(s.name)}</text>`);
     return o + `<text x="${(W + m.l) / 2}" y="${H - 4}" text-anchor="middle">${esc(xl)}</text><text x="11" y="${H / 2}" transform="rotate(-90 11 ${H / 2})" text-anchor="middle">${esc(yl)}</text></svg>`;
   }
 
+  /* Fasce colorate degli strati sullo sfondo dei diagrammi (asse: spessore in mm o s_d in m). */
+  const bande = (model, asse) => { let a = 0; return model.layers.map(l => { const b = a + (asse === 'sd' ? l.sd : l.d * 1000); const t = { x0:a, x1:b, st:stile(l) }; a = b; return t; }); };
+  /* Andamento dell'umidita' relativa negli strati: phi = p / p_sat (100 % = condensa). */
+  function umidita(model, mese) {
+    const phi = j => Math.min(100, mese.p[j] / mese.ps[j] * 100), xs = model.nodes.map(n => n.x * 1000), xe = xs[xs.length - 1];
+    return linee({ series:[{ pts:model.nodes.map((n, j) => [xs[j], phi(j)]), col:'#4a4547', name:'φ negli strati' },
+      { pts:[[0, 80], [xe, 80]], col:'#c94a4a', dash:true, name:'80 % muffa' }, { pts:[[0, 100], [xe, 100]], col:'#b3261e', dash:true, name:'100 % condensa' }],
+      bands:bande(model, 'x'), xl:'Spessore [mm] (interno → esterno)', yl:'Umidità relativa [%]' });
+  }
+  /* Acqua condensata nel mese selezionato, per piano di condensazione. */
+  function acquaStrati(model, mese) {
+    const xs = model.nodes.map(n => n.x * 1000);
+    return linee({ series:[{ pts:model.nodes.map((n, j) => [xs[j], (mese.M[j] || 0) * 1000]), col:'#b3261e', name:'condensa accumulata [g/m²]' }],
+      bands:bande(model, 'x'), pts:true, xl:'Spessore [mm] (interno → esterno)', yl:'g/m²', ydec:1 });
+  }
   /* Glaser: pressione vs resistenza al vapore s_d. */
   function glaser(model, mese) {
     const pts = (arr) => model.nodes.map((n, j) => [n.z, arr[j]]);
     const vl = []; let z = 0; model.layers.forEach(l => { z += l.sd; vl.push(z); });
     return linee({ series:[{ pts:pts(mese.ps), col:'#b3261e', name:'p sat' }, { pts:pts(mese.p), col:'#4a4547', name:'p effettiva' }],
-      vl, xl:'s_d cumulato [m]', yl:'Pressione [Pa]' });
+      vl, bands:bande(model, 'sd'), xl:'s_d cumulato [m]', yl:'Pressione [Pa]' });
   }
   /* Temperatura vs spessore. */
   function temperature(model, mese) {
     return linee({ series:[{ pts:model.nodes.map((n, j) => [n.x * 1000, mese.theta[j]]), col:'#c94a4a', name:'θ strato' }],
-      vl:(() => { let x = 0; return model.layers.map(l => (x += l.d * 1000)); })(), xl:'Spessore [mm] (interno → esterno)', yl:'Temperatura [°C]', ydec:1 });
+      vl:(() => { let x = 0; return model.layers.map(l => (x += l.d * 1000)); })(), bands:bande(model, 'x'), xl:'Spessore [mm] (interno → esterno)', yl:'Temperatura [°C]', ydec:1 });
   }
   /* Condensa accumulata mensile (g/m2). */
   function condensa(res) {
@@ -572,7 +604,7 @@ TH.norme = [
       { pts:[[1, res.limite * 1000], [12, res.limite * 1000]], col:'#b3261e', dash:true, name:'limite' }],
       xl:'Mese (1 = ottobre … 12 = settembre)', yl:'g/m²' });
   }
-  window.TH = window.TH || {}; TH.charts = { PATTERNS, PALETTE, stile, campione, sezione, glaser, temperature, condensa };
+  window.TH = window.TH || {}; TH.charts = { umidita, acquaStrati, PATTERNS, PALETTE, stile, campione, sezione, glaser, temperature, condensa };
 })();
 
 </script>
@@ -770,7 +802,7 @@ TH.norme = [
       <tr><td>Esito Glaser</td><td>${g.assente ? '<span class="ok">✔ Nessuna condensa</span>' : ok(g.ok, 'Condensa ammissibile e smaltita', 'NON verificato')}</td></tr></table></div>
     <h3>Diagramma mese: <select class="noprint" style="width:auto" data-a="mese" data-i="${i}">${MESI.map((m, k) => `<option value="${k}"${k === mm ? ' selected' : ''}>${m}</option>`).join('')}</select>
       <span class="note">θe ${fmt(r.bc[mm].thetaE, 1)} °C</span></h3>
-    <div class="charts">${TH.charts.temperature(r.model, mese)}${TH.charts.glaser(r.model, mese)}${g.assente ? '' : TH.charts.condensa(g)}</div>
+    <div class="charts">${TH.charts.temperature(r.model, mese)}${TH.charts.glaser(r.model, mese)}${TH.charts.umidita(r.model, mese)}${mese.maxM > 1e-9 ? TH.charts.acquaStrati(r.model, mese) : ''}${g.assente ? '' : TH.charts.condensa(g)}</div>
     <div style="overflow:auto"><table class="mt"><tr><th>Mese</th>${MESI.map(m => `<th>${m}</th>`).join('')}</tr>
     <tr><th>θe [°C]</th>${r.bc.map(b => `<td class="num">${fmt(b.thetaE, 1)}</td>`).join('')}</tr>
     <tr><th>Condensa del mese [g/m²]</th>${g.mesi.map(o => `<td class="num">${fmt(o.g * 1000, 1)}</td>`).join('')}</tr>
