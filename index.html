@@ -1,0 +1,826 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Verifica Termoigrometrica</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#1b2733;--mut:#5d6b78;--line:#d8dee4;--acc:#0b5cab;--ok:#1b7f3b;--ko:#b3261e;--warn:#9a6700}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12171c;--card:#1b232b;--ink:#e6ebf0;--mut:#98a6b3;--line:#2f3b46;--acc:#5aa9ff;--ok:#4ac26b;--ko:#ff7b72;--warn:#d4a72c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12171c;--card:#1b232b;--ink:#e6ebf0;--mut:#98a6b3;--line:#2f3b46;--acc:#5aa9ff;--ok:#4ac26b;--ko:#ff7b72;--warn:#d4a72c;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px;position:sticky;top:0;z-index:5}
+h1{font-size:18px;margin:0 0 8px}h1 small{font-weight:400;color:var(--mut);font-size:12px;margin-left:8px}
+h2{font-size:16px;margin:0 0 10px}h3{font-size:14px;margin:14px 0 6px}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:6px 12px;border-radius:6px;cursor:pointer}
+nav button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+main{max-width:1200px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.split{display:grid;grid-template-columns:minmax(240px,320px) 1fr;gap:14px}
+@media(max-width:800px){.split{grid-template-columns:1fr}}
+label{display:block;font-size:12px;color:var(--mut)}
+input,select,textarea,button{font:inherit;color:inherit}
+input,select,textarea{width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:var(--bg);margin-top:2px}
+button.b{background:var(--acc);color:#fff;border:0;padding:6px 12px;border-radius:5px;cursor:pointer}
+button.b.sec{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+button.b.del{background:transparent;color:var(--ko);border:1px solid var(--ko)}
+button.i{border:1px solid var(--line);background:var(--bg);border-radius:4px;cursor:pointer;padding:2px 7px}
+table{border-collapse:collapse;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:middle}
+th{font-size:12px;color:var(--mut);font-weight:600}
+td input,td select{margin:0;padding:3px 5px}
+.mt td input{width:58px;text-align:right}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.ok{color:var(--ok);font-weight:600}.ko{color:var(--ko);font-weight:600}.na{color:var(--mut)}
+.note{color:var(--mut);font-size:12px}
+.warn{background:rgba(212,167,44,.15);border:1px solid var(--warn);border-radius:6px;padding:8px 10px;color:var(--ink);margin-bottom:12px;font-size:13px}
+.row{display:flex;gap:8px;align-items:end;flex-wrap:wrap}
+.list{list-style:none;margin:0;padding:0;max-height:480px;overflow:auto}
+.list li{padding:6px 8px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:6px}
+.list li:hover,.list li.on{background:rgba(11,92,171,.12)}
+.tag{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:10px;padding:0 6px;white-space:nowrap}
+.kpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin:8px 0}
+.kpi div{border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+.kpi b{display:block;font-size:18px}.kpi span{font-size:11px;color:var(--mut)}
+svg text{fill:var(--ink);font-size:11px}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;opacity:0;transition:.25s;pointer-events:none}
+#toast.on{opacity:1}
+@media print{header,nav,.noprint,button{display:none!important}body{background:#fff}.card{break-inside:avoid;border-color:#999}}
+
+
+</style>
+<header>
+  <h1>Verifica termoigrometrica <small>Legge 10 / APE · UNI EN ISO 6946 · 13788 · 13786</small></h1>
+  <nav id="tabs">
+    <button data-tab="progetto" class="on">1 · Progetto e clima</button>
+    <button data-tab="ambienti">2 · Ambienti confinanti</button>
+    <button data-tab="materiali">3 · Materiali</button>
+    <button data-tab="stratigrafie">4 · Stratigrafie</button>
+    <button data-tab="verifica">5 · Verifica</button>
+    <button data-tab="norme">Normativa</button>
+  </nav>
+</header>
+<main id="main"></main>
+<div id="toast" role="status"></div>
+<script>
+/* Database comuni (seed). ATTENZIONE: valori INDICATIVI.
+   Tm = temperatura media annua [°C], A = ampiezza semi-escursione annua [K], UR = umidità relativa media annua [%].
+   stima:true => GG non desunti dal DPR 412/93 (da verificare).
+   Per dati ufficiali importare UNI 10349 / DPR 412 tramite CSV (scheda Progetto). */
+window.TH = window.TH || {};
+TH.comuni = [
+  // id, nome, prov, lat, lon, alt, GG, Tm, A, UR
+  ['milano','Milano','MI',45.4642,9.19,122,2404,13.0,11.5,72],
+  ['ferno','Ferno (Malpensa)','VA',45.6283,8.7287,205,2700,12.5,11.0,74,1],
+  ['somma-lombardo','Somma Lombardo','VA',45.6850,8.7100,282,2750,12.4,11.0,74,1],
+  ['lonate-pozzolo','Lonate Pozzolo','VA',45.6000,8.7600,200,2650,12.8,11.0,73,1],
+  ['gallarate','Gallarate','VA',45.6600,8.7918,238,2700,12.5,11.0,74,1],
+  ['varese','Varese','VA',45.8206,8.8251,382,2800,12.5,10.5,74,1],
+  ['como','Como','CO',45.8081,9.0852,201,2228,13.0,11.0,73],
+  ['bergamo','Bergamo','BG',45.6983,9.6773,249,2533,13.0,11.5,72],
+  ['brescia','Brescia','BS',45.5416,10.2118,149,2410,13.5,11.5,72],
+  ['torino','Torino','TO',45.0703,7.6869,239,2617,12.5,11.5,68],
+  ['cuneo','Cuneo','CN',44.3845,7.5427,534,2900,11.0,10.5,72,1],
+  ['aosta','Aosta','AO',45.737,7.3201,583,2850,10.5,11.0,70],
+  ['genova','Genova','GE',44.4056,8.9463,19,1435,16.0,8.5,65],
+  ['bolzano','Bolzano','BZ',46.4983,11.3548,262,2791,12.5,11.5,70],
+  ['trento','Trento','TN',46.0748,11.1217,194,2567,12.5,11.0,70],
+  ['verona','Verona','VR',45.4384,10.9916,59,2468,14.0,11.0,72],
+  ['padova','Padova','PD',45.4064,11.8768,12,2383,14.0,11.0,76,1],
+  ['venezia','Venezia','VE',45.4408,12.3155,1,2345,14.0,10.5,77],
+  ['udine','Udine','UD',46.0711,13.2346,113,2323,13.0,10.5,74,1],
+  ['trieste','Trieste','TS',45.6495,13.7768,2,1929,14.5,9.5,65],
+  ['parma','Parma','PR',44.8015,10.3279,57,2502,14.0,11.5,73,1],
+  ['modena','Modena','MO',44.6471,10.9252,34,2258,14.0,11.5,73,1],
+  ['bologna','Bologna','BO',44.4949,11.3426,54,2259,14.0,11.5,72],
+  ['rimini','Rimini','RN',44.0678,12.5695,5,2139,14.0,10.5,72,1],
+  ['firenze','Firenze','FI',43.7696,11.2558,50,1821,15.0,10.0,70],
+  ['pisa','Pisa','PI',43.7228,10.4017,4,1694,15.0,9.5,74,1],
+  ['livorno','Livorno','LI',43.5485,10.3106,3,1408,16.0,8.0,70,1],
+  ['perugia','Perugia','PG',43.1107,12.3908,493,2289,14.0,9.5,72],
+  ['ancona','Ancona','AN',43.6158,13.5189,16,1688,15.0,9.5,68],
+  ['pescara','Pescara','PE',42.4618,14.2161,4,1718,15.0,9.5,70],
+  ['laquila','L\'Aquila','AQ',42.3498,13.3995,714,2514,11.5,9.5,70],
+  ['roma','Roma','RM',41.9028,12.4964,20,1415,16.5,8.5,72],
+  ['campobasso','Campobasso','CB',41.5603,14.6627,701,2347,13.0,8.5,72],
+  ['napoli','Napoli','NA',40.8518,14.2681,17,1034,16.5,8.5,70],
+  ['salerno','Salerno','SA',40.6824,14.7681,4,1318,17.0,8.0,70,1],
+  ['bari','Bari','BA',41.1171,16.8719,5,1185,16.5,8.5,70],
+  ['taranto','Taranto','TA',40.4644,17.247,15,1071,17.0,8.5,70,1],
+  ['lecce','Lecce','LE',40.3515,18.175,49,1153,17.0,8.5,70,1],
+  ['potenza','Potenza','PZ',40.6404,15.8056,819,2472,12.0,9.0,72],
+  ['catanzaro','Catanzaro','CZ',38.9098,16.5877,320,1493,16.0,8.5,70,1],
+  ['reggio-calabria','Reggio Calabria','RC',38.1113,15.6619,31,772,18.0,7.5,68],
+  ['palermo','Palermo','PA',38.1157,13.3615,14,751,18.5,7.5,68],
+  ['catania','Catania','CT',37.5079,15.083,7,833,18.0,8.0,65],
+  ['cagliari','Cagliari','CA',39.2238,9.1217,4,990,17.5,7.5,70],
+  ['sassari','Sassari','SS',40.7259,8.5557,225,1185,16.0,8.0,72,1]
+].map(r => ({ id:r[0], nome:r[1], prov:r[2], lat:r[3], lon:r[4], alt:r[5], GG:r[6], Tm:r[7], A:r[8], UR:r[9], stima:!!r[10] }));
+
+</script>
+<script>
+/* Database materiali (seed) - valori indicativi da UNI 10351 / UNI EN ISO 10456.
+   lambda [W/mK], rho [kg/m3], c [J/kgK], mu [-] (fattore di resistenza al vapore), s = spessore tipico [mm].
+   Tutti i valori sono modificabili duplicando la voce nel database personale. */
+window.TH = window.TH || {};
+TH.materiali = [
+  // cat, nome, lambda, rho, c, mu, s
+  ['Strutture','Calcestruzzo armato 2400',2.00,2400,1000,80,200],
+  ['Strutture','Calcestruzzo ordinario 2200',1.65,2200,1000,80,200],
+  ['Strutture','Calcestruzzo alleggerito 1600',0.79,1600,1000,60,200],
+  ['Strutture','Calcestruzzo cellulare 400',0.10,400,1000,7,300],
+  ['Strutture','Calcestruzzo cellulare 600',0.16,600,1000,8,300],
+  ['Strutture','Mattone pieno 1800',0.72,1800,840,10,120],
+  ['Strutture','Mattone semipieno 1400',0.50,1400,840,10,120],
+  ['Strutture','Blocco laterizio forato 800 (equiv.)',0.30,800,840,7,80],
+  ['Strutture','Blocco laterizio alveolato porizzato 800',0.20,800,840,7,300],
+  ['Strutture','Blocco laterizio alveolato porizzato 600',0.14,600,840,7,300],
+  ['Strutture','Blocco in cls vibrocompresso (equiv.)',0.90,1500,1000,15,200],
+  ['Strutture','Pietra naturale (calcare tenero)',1.70,2200,1000,40,300],
+  ['Strutture','Acciaio',50,7800,450,1000000,3],
+  ['Strutture','Alluminio',160,2800,880,1000000,3],
+  ['Legno','Legno di abete / conifere',0.13,500,1600,50,40],
+  ['Legno','Pannello X-LAM',0.13,470,1600,50,100],
+  ['Legno','Pannello OSB',0.13,650,1700,50,15],
+  ['Legno','Compensato',0.13,500,1600,70,15],
+  ['Legno','Pannello truciolare',0.13,600,1700,50,18],
+  ['Legno','Parquet in rovere',0.18,700,1600,50,14],
+  ['Intonaci e finiture','Intonaco di calce e cemento 1800',0.90,1800,1000,15,20],
+  ['Intonaci e finiture','Intonaco di gesso 1000',0.40,1000,1000,10,15],
+  ['Intonaci e finiture','Intonaco di calce 1600',0.70,1600,1000,10,20],
+  ['Intonaci e finiture','Intonaco termoisolante 300',0.10,300,1000,8,30],
+  ['Intonaci e finiture','Rasante su cappotto (minerale)',0.80,1500,1000,25,6],
+  ['Intonaci e finiture','Rasante acrilico/silossanico',0.70,1400,1000,100,3],
+  ['Intonaci e finiture','Lastra di cartongesso',0.21,900,1000,8,12.5],
+  ['Intonaci e finiture','Lastra gessofibra',0.32,1150,1100,13,12.5],
+  ['Intonaci e finiture','Massetto cementizio 2000',1.40,2000,1000,15,50],
+  ['Intonaci e finiture','Massetto alleggerito 1200',0.50,1200,1000,10,60],
+  ['Intonaci e finiture','Piastrelle ceramica',1.30,2300,840,200,10],
+  ['Intonaci e finiture','Pavimento in PVC / linoleum',0.17,1200,1400,10000,4],
+  ['Intonaci e finiture','Marmo / granito',2.80,2700,1000,10000,20],
+  ['Isolanti','EPS bianco (λ 0,036)',0.036,20,1450,50,100],
+  ['Isolanti','EPS grafitato (λ 0,031)',0.031,20,1450,50,100],
+  ['Isolanti','XPS (λ 0,034)',0.034,35,1450,150,100],
+  ['Isolanti','Lana di roccia 80 kg/m³',0.036,80,1030,1,100],
+  ['Isolanti','Lana di roccia 140 kg/m³ (cappotto)',0.038,140,1030,1,100],
+  ['Isolanti','Lana di vetro 20 kg/m³',0.035,20,1030,1,100],
+  ['Isolanti','Poliuretano espanso PUR',0.027,35,1400,60,80],
+  ['Isolanti','Poliisocianurato PIR',0.023,35,1400,60,80],
+  ['Isolanti','Schiuma fenolica',0.021,35,1400,35,80],
+  ['Isolanti','Fibra di legno morbida 110',0.040,110,2100,5,100],
+  ['Isolanti','Fibra di legno rigida 160 (cappotto)',0.045,160,2100,5,60],
+  ['Isolanti','Sughero espanso',0.040,120,1700,10,60],
+  ['Isolanti','Vetro cellulare',0.045,120,1000,100000,80],
+  ['Isolanti','Fibra di canapa',0.040,40,1700,2,100],
+  ['Isolanti','Cellulosa insufflata',0.040,50,2000,2,150],
+  ['Isolanti','Aerogel (pannello)',0.015,150,1000,5,20],
+  ['Isolanti','Perlite espansa sfusa',0.055,100,900,4,100],
+  ['Isolanti','Argilla espansa sfusa',0.10,350,1000,3,100],
+  ['Membrane','Freno al vapore (sd ≈ 2 m)',0.17,1000,1800,10000,0.2],
+  ['Membrane','Barriera al vapore alluminio (sd ≈ 1500 m)',0.17,1000,1800,7500000,0.2],
+  ['Membrane','Telo traspirante (sd ≈ 0,05 m)',0.17,1000,1800,100,0.5],
+  ['Membrane','Guaina bituminosa (sd ≈ 200 m)',0.17,1200,1000,50000,4],
+  ['Membrane','Barriera vapore polietilene (sd ≈ 100 m)',0.50,950,1800,500000,0.2],
+  ['Coperture e esterno','Tegole in laterizio',1.00,2000,840,30,15],
+  ['Coperture e esterno','Ghiaia / zavorra',2.00,1700,1000,3,50],
+  ['Coperture e esterno','Terreno vegetale (verde pensile)',1.50,1600,1500,5,100],
+  ['Coperture e esterno','Vetro',1.00,2500,750,1000000,6],
+  ['Terreno','Sabbia e ghiaia',2.00,1800,1000,50,100],
+  ['Terreno','Argilla / limo',1.50,1800,1000,50,100]
+].map(r => ({ id:'b-' + r[1].toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),
+  cat:r[0], nome:r[1], lambda:r[2], rho:r[3], c:r[4], mu:r[5], s:r[6] }));
+
+TH.materiali.unshift({ id:'aria', tipo:'aria', cat:'Intercapedini', nome:'Intercapedine d\'aria (ISO 6946)', lambda:null, rho:0, c:0, mu:1, s:30 });
+
+/* Stratigrafie di esempio, dall'interno verso l'esterno. */
+(function () {
+  const id = n => TH.materiali.find(m => m.nome.startsWith(n)).id;
+  TH.stratigrafie = [
+    { id:'s-parete-cappotto', nome:'Parete laterizio 30 + cappotto EPS grafitato 14', tipo:'parete', strati:[
+      { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Blocco laterizio alveolato porizzato 800'), s:300 },
+      { matId:id('EPS grafitato'), s:140 }, { matId:id('Rasante su cappotto'), s:6 } ] },
+    { id:'s-parete-cls-roccia', nome:'Parete cls 25 + cappotto lana di roccia 12', tipo:'parete', strati:[
+      { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Calcestruzzo ordinario'), s:250 },
+      { matId:id('Lana di roccia 140'), s:120 }, { matId:id('Rasante su cappotto'), s:6 } ] },
+    { id:'s-parete-secco-facciata', nome:'Parete a secco con facciata ventilata', tipo:'parete', strati:[
+      { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lastra di cartongesso'), s:12.5 },
+      { matId:id('Freno al vapore'), s:0.2 }, { matId:id('Lana di roccia 80'), s:100 },
+      { matId:id('Pannello OSB'), s:15 }, { matId:id('Telo traspirante'), s:0.5 },
+      { matId:'aria', s:40, vent:2 }, { matId:id('Alluminio'), s:3 } ] },
+    { id:'s-copertura-legno', nome:'Copertura in legno ventilata', tipo:'copertura', strati:[
+      { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Barriera vapore polietilene'), s:0.2 },
+      { matId:id('Fibra di legno morbida'), s:200 }, { matId:id('Legno di abete'), s:25 },
+      { matId:'aria', s:50, vent:2 }, { matId:id('Tegole in laterizio'), s:15 } ] },
+    { id:'s-pavimento-terra', nome:'Solaio contro terra con isolante XPS', tipo:'pavimento', strati:[
+      { matId:id('Piastrelle ceramica'), s:10 }, { matId:id('Massetto cementizio'), s:60 },
+      { matId:id('XPS'), s:100 }, { matId:id('Calcestruzzo armato'), s:200 }, { matId:id('Sabbia e ghiaia'), s:300 } ] }
+  ];
+})();
+
+</script>
+<script>
+/* Trasmittanze termiche limite U [W/m2K] per zona climatica.
+   ATTENZIONE: valori riportati a memoria dal DM 26/06/2015 (App. B) e DM 06/08/2020 (Ecobonus):
+   VERIFICARE sul testo vigente. L'utente può modificarli dalla scheda Verifica (restano salvati nel browser). */
+window.TH = window.TH || {};
+TH.limiti = {
+  dm2015_2015: { label:'DM 26/06/2015 App. B - dal 01/10/2015',
+    parete:    { A:0.45, B:0.45, C:0.38, D:0.34, E:0.30, F:0.28 },
+    copertura: { A:0.38, B:0.38, C:0.36, D:0.30, E:0.25, F:0.23 },
+    pavimento: { A:0.46, B:0.46, C:0.40, D:0.32, E:0.30, F:0.28 } },
+  dm2015_2021: { label:'DM 26/06/2015 App. B - dal 01/01/2021',
+    parete:    { A:0.40, B:0.40, C:0.36, D:0.32, E:0.28, F:0.26 },
+    copertura: { A:0.32, B:0.32, C:0.32, D:0.26, E:0.24, F:0.22 },
+    pavimento: { A:0.42, B:0.42, C:0.38, D:0.32, E:0.30, F:0.28 } },
+  ecobonus2020: { label:'DM 06/08/2020 Ecobonus (riqualificazioni)',
+    parete:    { A:0.38, B:0.38, C:0.30, D:0.26, E:0.23, F:0.22 },
+    copertura: { A:0.27, B:0.27, C:0.27, D:0.22, E:0.20, F:0.19 },
+    pavimento: { A:0.40, B:0.40, C:0.30, D:0.28, E:0.25, F:0.23 } }
+};
+TH.yieLimiti = { verticale:0.10, orizzontale:0.18, massaSuperficiale:230 };
+
+</script>
+<script>
+window.TH = window.TH || {};
+TH.norme = [
+  ['Legge','Legge 10/1991 (art. 28)','Relazione tecnica di progetto ("Legge 10") da depositare in Comune','Documento finale'],
+  ['Legge','D.Lgs. 192/2005 e s.m.i. (D.Lgs. 311/2006, 48/2020, 73/2020)','Requisiti di prestazione energetica, APE, relazione tecnica','Quadro generale'],
+  ['Legge','DPR 412/1993 All. A','Zone climatiche A-F e gradi giorno per comune','Database clima'],
+  ['Legge','DPR 59/2009 art. 4','Verifica estiva: massa superficiale / trasmittanza periodica','Y_ie, M_s'],
+  ['Decreto','DM 26/06/2015 Requisiti minimi','Trasmittanze limite (App. B), edificio di riferimento, verifica condensa','U limite'],
+  ['Decreto','DM 26/06/2015 Linee guida APE e Schemi di relazione tecnica','Metodo APE, classi, modelli relazione','Output / APE'],
+  ['Decreto','DM 06/08/2020 (Ecobonus)','Trasmittanze massime per le detrazioni','U limite alternativa'],
+  ['Decreto','DM 23/06/2022 CAM Edilizia','Criteri ambientali minimi (appalti pubblici)','Riferimento'],
+  ['UNI','UNI EN ISO 6946','Resistenza e trasmittanza termica dei componenti','R, U'],
+  ['UNI','UNI EN ISO 13788','Condensazione superficiale e interstiziale','Glaser, f_Rsi'],
+  ['UNI','UNI EN ISO 13786','Caratteristiche termiche dinamiche','Y_ie, sfasamento, κ'],
+  ['UNI','UNI 10351 / UNI EN ISO 10456','Conduttività termica e permeabilità al vapore dei materiali','Database materiali'],
+  ['UNI','UNI 10349-1/-2/-3','Dati climatici (temperatura, umidità, irradianza)','Database comuni'],
+  ['UNI','UNI/TS 11300-1…6','Fabbisogni energetici e impianti (b_tr, APE)','b_tr; APE completo fuori scopo'],
+  ['UNI','UNI EN ISO 13370','Scambio termico verso il terreno','Non implementata'],
+  ['UNI','UNI EN ISO 10211 / 14683','Ponti termici','Non implementata']
+];
+
+</script>
+<script>
+/* Motore di calcolo termoigrometrico: ISO 6946, ISO 13788, ISO 13786. Nessuna dipendenza dal DOM. */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else { root.TH = root.TH || {}; root.TH.calc = api; }
+})(typeof self !== 'undefined' ? self : this, function () {
+  const MESI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const GIORNI = [31,28,31,30,31,30,31,31,30,31,30,31];
+  const RSI = { h:0.13, up:0.10, down:0.17 };           // ISO 6946
+  const DIR = { parete:'h', copertura:'up', pavimento:'down' };
+  const DELTA_ARIA = 2.0e-10;                            // kg/(m s Pa)
+
+  const psat = t => t >= 0 ? 610.5 * Math.exp(17.269 * t / (237.3 + t)) : 610.5 * Math.exp(21.875 * t / (265.5 + t));
+  const thetaDaPsat = p => { const x = Math.log(p / 610.5); return x >= 0 ? 237.3 * x / (17.269 - x) : 265.5 * x / (21.875 - x); };
+
+  const zonaDaGG = gg => gg <= 600 ? 'A' : gg <= 900 ? 'B' : gg <= 1400 ? 'C' : gg <= 2100 ? 'D' : gg <= 3000 ? 'E' : 'F';
+
+  /* Profilo mensile sinusoidale (picco a metà luglio): usato solo per i dati indicativi del seed. */
+  function profiloMensile(Tm, A, UR) {
+    const theta = [], phi = [];
+    for (let m = 0; m < 12; m++) {
+      theta.push(+(Tm + A * Math.cos(2 * Math.PI * (m - 6.4) / 12)).toFixed(1));
+      phi.push(Math.round(Math.min(95, Math.max(40, UR + 6 * Math.cos(2 * Math.PI * m / 12)))));
+    }
+    return { theta, phi };
+  }
+
+  const GAP_T = [0,5,7,10,15,25,50,100,300];
+  const GAP_R = { h:[0,.11,.13,.15,.17,.18,.18,.18,.18], up:[0,.11,.13,.15,.16,.16,.16,.16,.16], down:[0,.11,.13,.15,.17,.19,.21,.22,.23] };
+  function resistenzaIntercapedine(mm, dir) {
+    const t = GAP_T, r = GAP_R[dir];
+    if (mm >= t[t.length - 1]) return r[r.length - 1];
+    for (let i = 1; i < t.length; i++) if (mm <= t[i]) return r[i - 1] + (r[i] - r[i - 1]) * (mm - t[i - 1]) / (t[i] - t[i - 1]);
+    return 0;
+  }
+
+  /* Costruisce il modello numerico della stratigrafia (interno -> esterno).
+     lato: 'esterno' | 'interno' (ambiente non esterno) | 'terreno' */
+  function prepara(strat, matById, lato) {
+    const dir = DIR[strat.tipo] || 'h';
+    let layers = [];
+    for (const l of strat.strati) {
+      const m = matById[l.matId]; if (!m) continue;
+      const d = l.s / 1000;
+      if (m.tipo === 'aria') layers.push({ nome:m.nome, d, gap:true, vent:l.vent === 2, R:resistenzaIntercapedine(l.s, dir), sd:d, rho:0, c:0, lambda:0, mu:1 });
+      else layers.push({ nome:m.nome, d, lambda:m.lambda, rho:m.rho, c:m.c, mu:m.mu, R:d / m.lambda, sd:m.mu * d });
+    }
+    const Rsi = RSI[dir];
+    let Rse = lato === 'esterno' ? 0.04 : lato === 'terreno' ? 0 : RSI[dir];
+    let ventilata = false;
+    const vi = layers.findIndex(l => l.vent);
+    if (vi >= 0) { layers = layers.slice(0, vi); Rse = RSI[dir]; ventilata = true; } // ISO 6946: strati oltre l'intercapedine fortemente ventilata ignorati
+    const nodes = [{ x:0, R:0, z:0, layer:-1 }];
+    let x = 0, R = 0, z = 0;
+    layers.forEach((l, i) => {
+      const n = l.gap ? 1 : Math.min(30, Math.max(1, Math.ceil(l.d / 0.01)));
+      for (let k = 1; k <= n; k++) { x += l.d / n; R += l.R / n; z += l.sd / n; nodes.push({ x, R, z, layer:i }); }
+    });
+    const Rtot = Rsi + R + Rse;
+    return { dir, layers, Rsi, Rse, Rlayers:R, RT:Rtot, U:1 / Rtot, sdTot:z, spessore:x, nodes, ventilata,
+      Ms:layers.reduce((s, l) => s + (l.gap ? 0 : l.rho * l.d), 0) };
+  }
+
+  function profiloTemperature(model, thetaI, thetaE) {
+    return model.nodes.map(n => thetaI - (thetaI - thetaE) * (model.Rsi + n.R) / model.RT);
+  }
+
+  /* Risolve il profilo di pressione con piani saturi S. */
+  function risolviVapore(model, b, ps, S) {
+    const N = model.nodes.length - 1, z = model.nodes.map(n => n.z);
+    const fixed = [0, ...[...S].sort((a, b) => a - b), N];
+    const p = new Array(N + 1), g = {};
+    const pf = j => j === 0 ? b.pI : j === N ? b.pE : ps[j];
+    for (let k = 0; k < fixed.length - 1; k++) {
+      const a = fixed[k], c = fixed[k + 1], dz = Math.max(z[c] - z[a], 1e-6);
+      for (let j = a; j <= c; j++) p[j] = pf(a) + (pf(c) - pf(a)) * (z[j] - z[a]) / dz;
+    }
+    for (let k = 1; k < fixed.length - 1; k++) {
+      const a = fixed[k - 1], j = fixed[k], c = fixed[k + 1];
+      g[j] = DELTA_ARIA * ((pf(a) - pf(j)) / Math.max(z[j] - z[a], 1e-6) - (pf(j) - pf(c)) / Math.max(z[c] - z[j], 1e-6));
+    }
+    return { p, g };
+  }
+
+  /* Verifica di Glaser mensile con accumulo (ISO 13788), da ottobre a settembre.
+     bc[m] = { thetaI, pI, thetaE, pE } */
+  function glaser(model, bc, limite = 0.5) {
+    const N = model.nodes.length - 1;
+    const M = new Array(N + 1).fill(0);
+    const out = new Array(12);
+    for (const m of [9,10,11,0,1,2,3,4,5,6,7,8]) {
+      const b = bc[m], t = GIORNI[m] * 86400;
+      const theta = profiloTemperature(model, b.thetaI, b.thetaE), ps = theta.map(psat);
+      const S = new Set();
+      for (let j = 1; j < N; j++) if (M[j] > 1e-9) S.add(j);
+      let sol;
+      for (let it = 0; it < 300; it++) {
+        sol = risolviVapore(model, b, ps, S);
+        let cambiato = false;
+        for (const j of [...S]) {
+          if ((sol.g[j] < 0 && M[j] + sol.g[j] * t <= 0) || (sol.g[j] <= 0 && M[j] <= 1e-9)) { S.delete(j); M[j] = 0; cambiato = true; break; }
+        }
+        if (cambiato) continue;
+        let w = -1, ex = 1e-6;
+        for (let j = 1; j < N; j++) if (!S.has(j) && sol.p[j] - ps[j] > ex) { ex = sol.p[j] - ps[j]; w = j; }
+        if (w < 0) break;
+        S.add(w);
+      }
+      let cond = 0;
+      for (const j of S) { cond += sol.g[j] * t; M[j] = Math.max(0, M[j] + sol.g[j] * t); }
+      out[m] = { theta, ps, p:sol.p, piani:[...S], g:cond, M:[...M], maxM:Math.max(0, ...M) };
+    }
+    const maxM = Math.max(...out.map(o => o.maxM));
+    const residuo = out[8].M.reduce((s, v) => s + v, 0);
+    const mesiCond = out.map((o, m) => o.g > 1e-9 ? m : -1).filter(m => m >= 0);
+    return { mesi:out, maxM, residuo, mesiCond, limite,
+      assente: maxM < 1e-6,
+      ok: maxM <= limite && residuo < 1e-4 };
+  }
+
+  /* Rischio muffa/condensa superficiale (ISO 13788, phi_si = 80 %). */
+  function muffa(model, bc) {
+    const f = 1 - 0.25 * model.U;
+    let crit = { fmin:-Infinity, mese:-1 };
+    bc.forEach((b, m) => {
+      const dT = b.thetaI - b.thetaE; if (dT < 1) return;
+      const fmin = (thetaDaPsat(b.pI / 0.8) - b.thetaE) / dT;
+      if (fmin > crit.fmin) crit = { fmin, mese:m };
+    });
+    return { f, fmin:crit.fmin, mese:crit.mese, ok:f >= crit.fmin };
+  }
+
+  /* Numeri complessi minimi. */
+  const C = (re, im = 0) => ({ re, im });
+  const cmul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+  const cadd = (a, b) => C(a.re + b.re, a.im + b.im);
+  const cscale = (a, k) => C(a.re * k, a.im * k);
+  const cabs = a => Math.hypot(a.re, a.im);
+  const cinv = a => { const d = a.re * a.re + a.im * a.im; return C(a.re / d, -a.im / d); };
+  const mmul = (A, B) => [[cadd(cmul(A[0][0], B[0][0]), cmul(A[0][1], B[1][0])), cadd(cmul(A[0][0], B[0][1]), cmul(A[0][1], B[1][1]))],
+                          [cadd(cmul(A[1][0], B[0][0]), cmul(A[1][1], B[1][0])), cadd(cmul(A[1][0], B[0][1]), cmul(A[1][1], B[1][1]))]];
+
+  /* ISO 13786: parametri dinamici, periodo 24 h. */
+  function dinamica(model, T = 86400) {
+    const surf = R => [[C(1), C(-R)], [C(0), C(1)]];
+    const strato = l => {
+      if (l.gap) return [[C(1), C(-l.R)], [C(0), C(1)]];
+      const d = Math.sqrt(l.lambda * T / (Math.PI * l.rho * l.c)), xi = l.d / d;
+      const ch = Math.cosh(xi), sh = Math.sinh(xi), co = Math.cos(xi), si = Math.sin(xi);
+      const z11 = C(ch * co, sh * si);
+      return [[z11, cscale(C(sh * co + ch * si, ch * si - sh * co), -d / (2 * l.lambda))],
+              [cscale(C(sh * co - ch * si, sh * co + ch * si), -l.lambda / d), z11]];
+    };
+    let Zl = [[C(1), C(0)], [C(0), C(1)]];
+    for (const l of model.layers) Zl = mmul(Zl, strato(l));
+    const Z = mmul(mmul(surf(model.Rsi), Zl), surf(model.Rse));
+    const Yie = cscale(cinv(Z[0][1]), -1);
+    let ang = Math.atan2(Yie.im, Yie.re);              // risposta in ritardo => angolo negativo
+    let ore = -ang / (2 * Math.PI) * 24; ore = ((ore % 24) + 24) % 24;
+    const k = T / (2 * Math.PI) / 1000;                // kJ/m2K
+    const inv = cinv(Zl[0][1]);
+    return { Yie:cabs(Yie), f:cabs(Yie) / model.U, sfasamento:ore,
+      k1:k * cabs(cscale(cmul(Zl[0][0], inv), -1)), k2:k * cabs(cscale(cmul(Zl[1][1], inv), -1)) };
+  }
+
+  /* Condizioni al contorno dell'ambiente confinante nel mese m. */
+  function ambienteMese(amb, clima, thetaI, pI, m) {
+    const te = clima.theta[m], pe = clima.phi[m] / 100 * psat(te);
+    switch (amb.tipo) {
+      case 'esterno': return { theta:te, p:pe };
+      case 'non_climatizzato': { const b = amb.b ?? 0.5; return { theta:thetaI - b * (thetaI - te), p:pe + b * (pI - pe) }; }
+      case 'mensile': return { theta:amb.theta[m], p:amb.phi[m] / 100 * psat(amb.theta[m]) };
+      default: return { theta:amb.theta, p:amb.phi / 100 * psat(amb.theta) };   // terreno, climatizzato, fissa
+    }
+  }
+
+  /* Verifica completa di un elemento. */
+  function valuta({ strat, mats, amb, clima, thetaI, phiI, limiti, zona, orient, limiteCondensa = 0.5 }) {
+    const lato = amb.tipo === 'esterno' ? 'esterno' : amb.tipo === 'terreno' ? 'terreno' : 'interno';
+    const model = prepara(strat, mats, lato);
+    const pI = phiI / 100 * psat(thetaI);
+    const bc = MESI.map((_, m) => { const e = ambienteMese(amb, clima, thetaI, pI, m); return { thetaI, pI, thetaE:e.theta, pE:e.p }; });
+    const soggetto = ['esterno','non_climatizzato','terreno'].includes(amb.tipo);
+    const b = (amb.tipo === 'non_climatizzato' || amb.tipo === 'terreno') ? (amb.b ?? 1) : 1;
+    const Ulim = soggetto && limiti && limiti[strat.tipo] ? limiti[strat.tipo][zona] : null;
+    const Ucmp = model.U * b;
+    const dyn = dinamica(model);
+    const estiva = amb.tipo === 'esterno';
+    const vert = strat.tipo === 'parete';
+    const yieLim = vert ? TH_Y.verticale : TH_Y.orizzontale;
+    const esente = vert && orient === 'N';
+    const estOk = !estiva || esente ? null : (vert && model.Ms > TH_Y.massa) || dyn.Yie < yieLim;
+    return { model, bc, U:model.U, Ucmp, b, Ulim, Uok:Ulim == null ? null : Ucmp <= Ulim + 1e-9,
+      Ms:model.Ms, dyn, yieLim, estiva:estOk, esente,
+      muffa:muffa(model, bc), glaser:glaser(model, bc, limiteCondensa) };
+  }
+  const TH_Y = { verticale:0.10, orizzontale:0.18, massa:230 };
+
+  return { MESI, GIORNI, RSI, DIR, psat, thetaDaPsat, zonaDaGG, profiloMensile, resistenzaIntercapedine,
+    prepara, profiloTemperature, glaser, muffa, dinamica, ambienteMese, valuta, setYie: o => Object.assign(TH_Y, o) };
+});
+
+</script>
+<script>
+/* Grafici SVG minimi (nessuna libreria). */
+(function () {
+  const PAL = ['#8d6e63','#90a4ae','#a5d6a7','#ffcc80','#ce93d8','#80cbc4','#f48fb1','#bcaaa4','#b0bec5'];
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+
+  /* Sezione della stratigrafia, larghezza proporzionale (con minimo) e quote in mm. */
+  function sezione(model) {
+    const W = 420, H = 110, L = model.layers; if (!L.length) return '';
+    const tot = L.reduce((s, l) => s + Math.max(l.d, 0.012), 0);
+    let x = 10, out = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Sezione stratigrafia"><text x="10" y="12">INTERNO</text><text x="${W - 10}" y="12" text-anchor="end">ESTERNO</text>`;
+    L.forEach((l, i) => {
+      const w = Math.max(l.d, 0.012) / tot * (W - 20);
+      out += `<rect x="${x}" y="20" width="${w}" height="50" fill="${l.gap ? 'none' : PAL[i % PAL.length]}" stroke="#667" ${l.gap ? 'stroke-dasharray="3"' : ''}><title>${esc(l.nome)}</title></rect>`;
+      out += `<text x="${x + w / 2}" y="84" text-anchor="middle" font-size="9">${Math.round(l.d * 1000 * 10) / 10}</text>`;
+      x += w;
+    });
+    return out + `<text x="10" y="104" font-size="10">spessori in mm · strati: ${L.length}${model.ventilata ? ' (oltre intercapedine ventilata ignorati)' : ''}</text></svg>`;
+  }
+
+  /* Grafico a linee generico. series: {pts:[[x,y]], col, dash, name} ; vl: linee verticali x. */
+  function linee({ series, vl = [], xl, yl, W = 420, H = 260, ydec = 0 }) {
+    const m = { l:48, r:12, t:12, b:34 };
+    const xs = series.flatMap(s => s.pts.map(p => p[0])), ys = series.flatMap(s => s.pts.map(p => p[1]));
+    let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    if (x1 === x0) x1 = x0 + 1; const pad = (y1 - y0) * 0.08 || 1; y0 -= pad; y1 += pad;
+    const X = v => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r), Y = v => H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
+    let o = `<svg viewBox="0 0 ${W} ${H}" width="100%"><rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="none" stroke="#889" stroke-opacity=".5"/>`;
+    for (let i = 0; i <= 4; i++) { const v = y0 + (y1 - y0) * i / 4; o += `<text x="${m.l - 4}" y="${Y(v) + 3}" text-anchor="end">${v.toFixed(ydec)}</text><line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#889" stroke-opacity=".2"/>`; }
+    for (let i = 0; i <= 4; i++) { const v = x0 + (x1 - x0) * i / 4; o += `<text x="${X(v)}" y="${H - m.b + 13}" text-anchor="middle">${v < 10 ? v.toFixed(2) : v.toFixed(0)}</text>`; }
+    vl.forEach(v => o += `<line x1="${X(v)}" x2="${X(v)}" y1="${m.t}" y2="${H - m.b}" stroke="#889" stroke-opacity=".45" stroke-dasharray="2"/>`);
+    series.forEach(s => o += `<polyline fill="none" stroke="${s.col}" stroke-width="2" ${s.dash ? 'stroke-dasharray="5 3"' : ''} points="${s.pts.map(p => X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1)).join(' ')}"/>`);
+    series.forEach((s, i) => o += `<rect x="${m.l + 8 + i * 118}" y="${m.t + 6}" width="10" height="3" fill="${s.col}"/><text x="${m.l + 22 + i * 118}" y="${m.t + 11}">${esc(s.name)}</text>`);
+    return o + `<text x="${(W + m.l) / 2}" y="${H - 4}" text-anchor="middle">${esc(xl)}</text><text x="11" y="${H / 2}" transform="rotate(-90 11 ${H / 2})" text-anchor="middle">${esc(yl)}</text></svg>`;
+  }
+
+  /* Glaser: pressione vs resistenza al vapore s_d. */
+  function glaser(model, mese) {
+    const pts = (arr) => model.nodes.map((n, j) => [n.z, arr[j]]);
+    const vl = []; let z = 0; model.layers.forEach(l => { z += l.sd; vl.push(z); });
+    return linee({ series:[{ pts:pts(mese.ps), col:'#d9534f', name:'p sat' }, { pts:pts(mese.p), col:'#0b5cab', name:'p effettiva' }],
+      vl, xl:'s_d cumulato [m]', yl:'Pressione [Pa]' });
+  }
+  /* Temperatura vs spessore. */
+  function temperature(model, mese) {
+    return linee({ series:[{ pts:model.nodes.map((n, j) => [n.x * 1000, mese.theta[j]]), col:'#e67e22', name:'θ strato' }],
+      vl:(() => { let x = 0; return model.layers.map(l => (x += l.d * 1000)); })(), xl:'Spessore [mm] (interno → esterno)', yl:'Temperatura [°C]', ydec:1 });
+  }
+  /* Condensa accumulata mensile (g/m2). */
+  function condensa(res) {
+    const ord = [9,10,11,0,1,2,3,4,5,6,7,8];
+    return linee({ series:[{ pts:ord.map((m, i) => [i + 1, res.mesi[m].maxM * 1000]), col:'#0b5cab', name:'accumulo [g/m²]' },
+      { pts:[[1, res.limite * 1000], [12, res.limite * 1000]], col:'#d9534f', dash:true, name:'limite' }],
+      xl:'Mese (1 = ottobre … 12 = settembre)', yl:'g/m²' });
+  }
+  window.TH = window.TH || {}; TH.charts = { sezione, glaser, temperature, condensa };
+})();
+
+</script>
+<script>
+/* Interfaccia dell'applicativo: stato, persistenza (localStorage) e schede. */
+(function () {
+  const C = TH.calc, MESI = C.MESI;
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const num = (v, d = 0) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : d; };
+  const fmt = (v, n = 3) => v == null || !isFinite(v) ? '–' : v.toLocaleString('it-IT', { minimumFractionDigits:n, maximumFractionDigits:n });
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const toast = t => { const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 2600); };
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('thv1_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('thv1_' + k, JSON.stringify(v)); } catch (e) { toast('Salvataggio locale non disponibile'); } }
+  };
+
+  /* ---------- stato e database ---------- */
+  let dbMat = store.get('materiali', []), dbStr = store.get('stratigrafie', []), dbCom = store.get('comuni', []);
+  const materiali = () => [...TH.materiali.map(m => ({ ...m, base:true })), ...dbMat];
+  const matById = () => Object.fromEntries(materiali().map(m => [m.id, m]));
+  const stratigrafie = () => [...TH.stratigrafie.map(s => ({ ...s, base:true })), ...dbStr];
+  const comuni = () => [...TH.comuni.map(c => ({ ...c, base:true })), ...dbCom];
+  const limitiSet = () => store.get('limiti', null) || clone(TH.limiti);
+
+  function climaDa(c) {
+    const pr = c.theta ? { theta:c.theta, phi:c.phi } : C.profiloMensile(c.Tm, c.A, c.UR);
+    return { nome:c.nome, prov:c.prov, lat:c.lat, lon:c.lon, alt:c.alt, GG:c.GG, zona:C.zonaDaGG(c.GG), theta:[...pr.theta], phi:[...pr.phi], stima:!!c.stima };
+  }
+  function nuovoProgetto() {
+    const c = TH.comuni.find(x => x.id === 'ferno');
+    return { nome:'Nuovo progetto', committente:'', comuneId:c.id, clima:climaDa(c), thetaI:20, phiI:65, limitSet:'dm2015_2021', limiteCondensa:0.5,
+      ambienti:[ { id:'ext', nome:'Esterno', tipo:'esterno' },
+        { id:'a-nc', nome:'Ambiente non climatizzato (b = 0,5)', tipo:'non_climatizzato', b:0.5 },
+        { id:'a-terra', nome:'Terreno', tipo:'terreno', theta:10, phi:90, b:0.45 },
+        { id:'a-clim', nome:'Ambiente climatizzato adiacente', tipo:'climatizzato', theta:20, phi:50 } ],
+      elementi:[] };
+  }
+  let P = store.get('progetto', null) || nuovoProgetto();
+  const save = () => store.set('progetto', P);
+  let tab = 'progetto', ED = null, MF = null, matFilt = { q:'', cat:'' };
+
+  const setPath = (o, path, v) => { const k = path.split('.'); const last = k.pop(); let t = o; k.forEach(p => t = t[p]); t[last] = v; };
+  const opts = (list, sel, f = x => x.id, l = x => x.nome) => list.map(x => `<option value="${esc(f(x))}"${f(x) === sel ? ' selected' : ''}>${esc(l(x))}</option>`).join('');
+
+  /* ---------- 1. progetto e clima ---------- */
+  function vProgetto() {
+    const c = P.clima, ls = limitiSet();
+    return `<div class="warn">I dati climatici di base sono <b>indicativi</b> (profilo sinusoidale e GG in parte stimati). Per la relazione ufficiale inserire i valori UNI 10349 / DPR 412 a mano o con l'import CSV: restano salvati nel database dei comuni.</div>
+    <div class="card"><h2>Progetto</h2><div class="grid">
+      <label>Nome progetto<input data-f="nome" value="${esc(P.nome)}"></label>
+      <label>Committente / note<input data-f="committente" value="${esc(P.committente)}"></label>
+      <label>Comune (database)<input list="dl-com" data-a="comune" value="${esc(c.nome + (c.prov ? ' (' + c.prov + ')' : ''))}"></label>
+      <label>Temperatura interna θi [°C]<input type="number" step="0.5" data-f="thetaI" value="${P.thetaI}"></label>
+      <label>Umidità relativa interna φi [%]<input type="number" step="1" data-f="phiI" value="${P.phiI}"></label>
+      <label>Limite condensa interstiziale [kg/m²]<input type="number" step="0.1" data-f="limiteCondensa" value="${P.limiteCondensa}"></label>
+      <label>Valori limite U<select data-f="limitSet">${Object.entries(ls).map(([k, v]) => `<option value="${k}"${k === P.limitSet ? ' selected' : ''}>${esc(v.label)}</option>`).join('')}</select></label>
+    </div><datalist id="dl-com">${comuni().map(x => `<option value="${esc(x.nome + ' (' + x.prov + ')')}">`).join('')}</datalist></div>
+    <div class="card"><h2>Dati climatici${c.stima ? ' <span class="tag">GG stimati</span>' : ''}</h2><div class="grid">
+      <label>Latitudine [°]<input type="number" step="0.0001" data-f="clima.lat" value="${c.lat}"></label>
+      <label>Longitudine [°]<input type="number" step="0.0001" data-f="clima.lon" value="${c.lon}"></label>
+      <label>Altitudine [m s.l.m.]<input type="number" data-f="clima.alt" value="${c.alt}"></label>
+      <label>Gradi giorno (DPR 412/93)<input type="number" data-f="clima.GG" data-a="gg" value="${c.GG}"></label>
+      <label>Zona climatica<select data-f="clima.zona">${'ABCDEF'.split('').map(z => `<option${z === c.zona ? ' selected' : ''}>${z}</option>`).join('')}</select></label></div>
+      <h3>Temperatura esterna e umidità relativa mensili</h3>
+      <div style="overflow:auto"><table class="mt"><tr><th></th>${MESI.map(m => `<th>${m}</th>`).join('')}</tr>
+      <tr><th>θe [°C]</th>${c.theta.map((v, i) => `<td><input type="number" step="0.1" data-f="clima.theta.${i}" value="${v}"></td>`).join('')}</tr>
+      <tr><th>φe [%]</th>${c.phi.map((v, i) => `<td><input type="number" step="1" data-f="clima.phi.${i}" value="${v}"></td>`).join('')}</tr></table></div>
+      <div class="row noprint" style="margin-top:10px"><button class="b" data-a="saveComune">Salva nel database comuni</button>
+        <button class="b sec" data-a="csvComuni">Importa CSV comuni</button><input type="file" id="csvf" accept=".csv,.txt" hidden>
+        <button class="b sec" data-a="exportP">Esporta progetto (JSON)</button><button class="b sec" data-a="importP">Importa progetto</button><input type="file" id="jsonf" accept=".json" hidden>
+        <button class="b del" data-a="newP">Nuovo progetto</button></div>
+      <p class="note">CSV (separatore ; ): nome;prov;lat;lon;alt;GG;Tm;A;UR  oppure  nome;prov;lat;lon;alt;GG;θ1…θ12;φ1…φ12.</p></div>`;
+  }
+
+  /* ---------- 2. ambienti confinanti ---------- */
+  const TIPI = { esterno:'Esterno', non_climatizzato:'Non climatizzato (b)', terreno:'Terreno', climatizzato:'Climatizzato adiacente', mensile:'Temperature mensili' };
+  function vAmbienti() {
+    return `<div class="card"><h2>Ambienti confinanti</h2>
+    <p class="note">Ogni elemento di involucro separa l'ambiente interno (θi, φi) da un ambiente confinante. Per i non climatizzati θ = θi − b·(θi − θe) (b da UNI/TS 11300-1); per terreno e climatizzati si assegna θ e φ; con "mensile" si assegnano 12 valori.</p>
+    <table><tr><th>Nome</th><th>Tipo</th><th>Parametri</th><th></th></tr>${P.ambienti.map((a, i) => `<tr><td><input data-f="ambienti.${i}.nome" value="${esc(a.nome)}" ${a.id === 'ext' ? 'disabled' : ''}></td>
+      <td>${a.id === 'ext' ? 'Esterno (clima del comune)' : `<select data-f="ambienti.${i}.tipo" data-a="tipoAmb" data-i="${i}">${Object.entries(TIPI).filter(([k]) => k !== 'esterno').map(([k, v]) => `<option value="${k}"${k === a.tipo ? ' selected' : ''}>${v}</option>`).join('')}</select>`}</td>
+      <td>${parAmb(a, i)}</td><td>${a.id === 'ext' ? '' : `<button class="i" data-a="delAmb" data-i="${i}">✕</button>`}</td></tr>`).join('')}</table>
+    <p><button class="b" data-a="addAmb">+ Aggiungi ambiente</button></p></div>`;
+  }
+  function parAmb(a, i) {
+    const f = (k, l, st = 0.1) => `<label style="display:inline-block;margin-right:8px">${l}<input type="number" step="${st}" style="width:74px" data-f="ambienti.${i}.${k}" value="${a[k]}"></label>`;
+    if (a.tipo === 'non_climatizzato') return f('b', 'b_tr [-]', 0.05);
+    if (a.tipo === 'terreno') return f('theta', 'θ [°C]') + f('phi', 'φ [%]', 1) + f('b', 'b [-] (confronto U)', 0.05);
+    if (a.tipo === 'climatizzato') return f('theta', 'θ [°C]') + f('phi', 'φ [%]', 1);
+    if (a.tipo === 'mensile') return `<div style="overflow:auto"><table class="mt"><tr>${MESI.map(m => `<th>${m}</th>`).join('')}</tr>
+      <tr>${a.theta.map((v, k) => `<td><input type="number" step="0.1" data-f="ambienti.${i}.theta.${k}" value="${v}"></td>`).join('')}</tr>
+      <tr>${a.phi.map((v, k) => `<td><input type="number" step="1" data-f="ambienti.${i}.phi.${k}" value="${v}"></td>`).join('')}</tr></table><span class="note">riga 1 θ [°C], riga 2 φ [%]</span></div>`;
+    return '<span class="note">clima del comune</span>';
+  }
+
+  /* ---------- 3. materiali ---------- */
+  function vMateriali() {
+    const cats = [...new Set(materiali().map(m => m.cat))];
+    const list = materiali().filter(m => (!matFilt.cat || m.cat === matFilt.cat) && m.nome.toLowerCase().includes(matFilt.q.toLowerCase()));
+    const f = MF || {};
+    return `<div class="card"><h2>Database materiali</h2><div class="row">
+      <label style="flex:1">Cerca<input data-a="mq" value="${esc(matFilt.q)}" placeholder="es. EPS, laterizio…"></label>
+      <label>Categoria<select data-a="mcat"><option value="">Tutte</option>${cats.map(c => `<option${c === matFilt.cat ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select></label></div>
+      <div style="overflow:auto;max-height:420px;margin-top:8px"><table><tr><th>Materiale</th><th>Categoria</th><th class="num">λ W/mK</th><th class="num">ρ kg/m³</th><th class="num">c J/kgK</th><th class="num">μ</th><th></th></tr>
+      ${list.map(m => `<tr><td>${esc(m.nome)} ${m.base ? '' : '<span class="tag">personale</span>'}</td><td>${esc(m.cat)}</td><td class="num">${m.lambda ?? '–'}</td><td class="num">${m.rho}</td><td class="num">${m.c}</td><td class="num">${m.mu}</td>
+      <td>${m.tipo === 'aria' ? '' : `<button class="i" data-a="dupMat" data-id="${m.id}">${m.base ? 'Duplica' : 'Modifica'}</button>${m.base ? '' : ` <button class="i" data-a="delMat" data-id="${m.id}">✕</button>`}`}</td></tr>`).join('')}</table></div></div>
+    <div class="card"><h2>${f.id ? 'Modifica materiale personale' : 'Nuovo materiale'}</h2><div class="grid">
+      <label>Nome<input data-m="nome" value="${esc(f.nome)}"></label><label>Categoria<input data-m="cat" list="dl-cat" value="${esc(f.cat || 'Personalizzati')}"></label>
+      <label>λ [W/mK]<input type="number" step="0.001" data-m="lambda" value="${f.lambda ?? ''}"></label><label>ρ [kg/m³]<input type="number" data-m="rho" value="${f.rho ?? ''}"></label>
+      <label>c [J/kgK]<input type="number" data-m="c" value="${f.c ?? 1000}"></label><label>μ [-]<input type="number" step="0.1" data-m="mu" value="${f.mu ?? 1}"></label>
+      <label>Spessore tipico [mm]<input type="number" step="0.1" data-m="s" value="${f.s ?? 100}"></label></div>
+      <datalist id="dl-cat">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
+      <p><button class="b" data-a="saveMat">${f.id ? 'Aggiorna' : 'Aggiungi al database'}</button> ${f.id ? '<button class="b sec" data-a="cancMat">Annulla</button>' : ''}</p>
+      <p class="note">μ = fattore di resistenza alla diffusione del vapore (UNI EN ISO 10456); per membrane indicare μ e spessore per ottenere s_d = μ·d.</p></div>`;
+  }
+
+  /* ---------- 4. stratigrafie ---------- */
+  function matSelect(sel, attr) {
+    const mm = materiali(), cats = [...new Set(mm.map(m => m.cat))];
+    return `<select ${attr}>${cats.map(c => `<optgroup label="${esc(c)}">${mm.filter(m => m.cat === c).map(m => `<option value="${m.id}"${m.id === sel ? ' selected' : ''}>${esc(m.nome)}</option>`).join('')}</optgroup>`).join('')}</select>`;
+  }
+  function anteprima(s) {
+    const model = C.prepara(s, matById(), 'esterno'), d = C.dinamica(model);
+    return `${TH.charts.sezione(model)}<div class="kpi"><div><b>${fmt(model.U)}</b><span>U [W/m²K] (verso esterno)</span></div><div><b>${fmt(model.RT, 2)}</b><span>R totale [m²K/W]</span></div>
+      <div><b>${fmt(model.spessore * 1000, 0)}</b><span>spessore [mm]</span></div><div><b>${fmt(model.Ms, 0)}</b><span>M<sub>s</sub> [kg/m²]</span></div>
+      <div><b>${fmt(d.Yie)}</b><span>Y<sub>ie</sub> [W/m²K]</span></div><div><b>${fmt(d.sfasamento, 1)}</b><span>sfasamento [h]</span></div></div>`;
+  }
+  function vStrat() {
+    const all = stratigrafie(), m = matById();
+    let ed = '<p class="note">Seleziona una stratigrafia a sinistra o creane una nuova.</p>';
+    if (ED) ed = `<div class="grid"><label>Nome<input data-e="nome" value="${esc(ED.nome)}"></label>
+      <label>Tipologia<select data-e="tipo">${[['parete', 'Parete verticale (flusso orizzontale)'], ['copertura', 'Copertura / soffitto (flusso ascendente)'], ['pavimento', 'Pavimento / solaio (flusso discendente)']].map(([k, v]) => `<option value="${k}"${k === ED.tipo ? ' selected' : ''}>${v}</option>`).join('')}</select></label></div>
+      <h3>Strati (dall'interno verso l'esterno)</h3><table><tr><th>#</th><th>Materiale</th><th>Spessore [mm]</th><th>Note</th><th></th></tr>
+      ${ED.strati.map((l, i) => `<tr><td>${i + 1}</td><td>${matSelect(l.matId, `data-l="${i}.matId"`)}</td><td><input type="number" step="0.1" style="width:90px" data-l="${i}.s" value="${l.s}"></td>
+      <td>${m[l.matId] && m[l.matId].tipo === 'aria' ? `<label><input type="checkbox" style="width:auto" data-l="${i}.vent" ${l.vent === 2 ? 'checked' : ''}> fortemente ventilata</label>` : ''}</td>
+      <td style="white-space:nowrap"><button class="i" data-a="up" data-i="${i}">↑</button> <button class="i" data-a="down" data-i="${i}">↓</button> <button class="i" data-a="delL" data-i="${i}">✕</button></td></tr>`).join('')}</table>
+      <p class="row"><button class="b sec" data-a="addL">+ Aggiungi strato</button><button class="b" data-a="saveStr">Salva nel database</button><button class="b sec" data-a="newStr">Nuova</button></p>
+      <div id="prev">${anteprima(ED)}</div>`;
+    return `<div class="split"><div class="card"><h2>Libreria</h2><ul class="list">${all.map(s => `<li class="${ED && ED.id === s.id ? 'on' : ''}" data-a="selStr" data-id="${s.id}"><span>${esc(s.nome)}</span><span>${s.base ? '<span class="tag">base</span>' : `<span class="tag">mia</span> <button class="i" data-a="delStr" data-id="${s.id}">✕</button>`}</span></li>`).join('')}</ul>
+      <p><button class="b" data-a="newStr">+ Nuova stratigrafia</button></p></div>
+      <div class="card"><h2>Editor stratigrafia</h2>${ed}</div></div>`;
+  }
+
+  /* ---------- 5. verifica ---------- */
+  const ok = (v, t = 'Verificato', f = 'NON verificato') => v == null ? '<span class="na">n.a.</span>' : v ? `<span class="ok">✔ ${t}</span>` : `<span class="ko">✘ ${f}</span>`;
+  function calcola(el) {
+    const strat = stratigrafie().find(s => s.id === el.stratId), amb = P.ambienti.find(a => a.id === el.ambId);
+    if (!strat || !amb) return null;
+    const limiti = limitiSet()[P.limitSet];
+    return C.valuta({ strat, mats:matById(), amb, clima:P.clima, thetaI:P.thetaI, phiI:P.phiI, limiti, zona:P.clima.zona, orient:el.orient, limiteCondensa:P.limiteCondensa });
+  }
+  function vVerifica() {
+    const ls = limitiSet(), set = ls[P.limitSet], z = P.clima.zona;
+    const lim = `<div class="card noprint"><h2>Valori limite U – zona ${z}</h2><div class="row">${['parete', 'copertura', 'pavimento'].map(t => `<label>${t}<input type="number" step="0.01" style="width:90px" data-lim="${t}" value="${set[t][z]}"></label>`).join('')}
+      <span class="note">Valori da verificare sul testo vigente; le modifiche restano nel browser.</span></div></div>`;
+    const add = `<div class="card noprint"><h2>Aggiungi elemento al pacchetto</h2><div class="grid">
+      <label>Nome elemento<input id="n-nome" placeholder="es. Parete P1 – facciata nord"></label>
+      <label>Stratigrafia<select id="n-str">${opts(stratigrafie(), '')}</select></label>
+      <label>Ambiente confinante<select id="n-amb">${opts(P.ambienti, 'ext')}</select></label>
+      <label>Esposizione<select id="n-or"><option value="S">Est / Sud / Ovest / orizzontale</option><option value="N">Nord (esente verifica estiva)</option></select></label></div>
+      <p><button class="b" data-a="addEl">+ Aggiungi e verifica</button></p></div>`;
+    const res = P.elementi.map((el, i) => card(el, i)).join('') || '<div class="card"><p class="note">Nessun elemento: aggiungi una stratigrafia e un ambiente confinante.</p></div>';
+    return `<div class="row noprint" style="margin-bottom:10px"></div>
+    <div class="card"><h2>${esc(P.nome)} – ${esc(P.clima.nome)}</h2><p class="note">Zona climatica ${z} · GG ${P.clima.GG} · lat ${P.clima.lat} lon ${P.clima.lon} · θi ${P.thetaI} °C φi ${P.phiI} % · limiti: ${esc(set.label)}</p></div>${add}${lim}${res}`;
+  }
+  function card(el, i) {
+    const r = calcola(el);
+    const head = `<div class="row" style="justify-content:space-between"><h2>${esc(el.nome)}</h2><button class="i noprint" data-a="delEl" data-i="${i}">✕ Rimuovi</button></div>`;
+    if (!r) return `<div class="card">${head}<p class="ko">Stratigrafia o ambiente non più disponibili.</p></div>`;
+    const g = r.glaser, mm = el.mese ?? (g.assente ? 0 : g.mesi.findIndex(o => o.maxM === g.maxM)), mese = g.mesi[mm];
+    const amb = P.ambienti.find(a => a.id === el.ambId), strat = stratigrafie().find(s => s.id === el.stratId);
+    const dyn = r.dyn;
+    return `<div class="card">${head}<p class="note">${esc(strat.nome)} · verso: ${esc(amb.nome)} · tipologia ${strat.tipo}${r.model.ventilata ? ' · intercapedine ventilata (strati esterni ignorati)' : ''}</p>
+    <div class="charts"><div>${TH.charts.sezione(r.model)}</div>
+    <table><tr><th colspan="2">Termica invernale (ISO 6946)</th></tr>
+      <tr><td>Trasmittanza U${r.b !== 1 ? ' · U×b' : ''}</td><td class="num">${fmt(r.U)}${r.b !== 1 ? ' · ' + fmt(r.Ucmp) : ''} W/m²K</td></tr>
+      <tr><td>U limite (zona ${P.clima.zona})</td><td class="num">${r.Ulim == null ? 'n.a.' : fmt(r.Ulim, 2)}</td></tr>
+      <tr><td>Esito</td><td>${ok(r.Uok)}</td></tr>
+      <tr><th colspan="2">Estiva (ISO 13786 · DPR 59/2009)</th></tr>
+      <tr><td>Massa superficiale M<sub>s</sub></td><td class="num">${fmt(r.Ms, 0)} kg/m²</td></tr>
+      <tr><td>Y<sub>ie</sub> (limite ${fmt(r.yieLim, 2)}) · f · sfasamento</td><td class="num">${fmt(dyn.Yie)} · ${fmt(dyn.f, 2)} · ${fmt(dyn.sfasamento, 1)} h</td></tr>
+      <tr><td>κ<sub>1</sub> interna · κ<sub>2</sub> esterna</td><td class="num">${fmt(dyn.k1, 0)} · ${fmt(dyn.k2, 0)} kJ/m²K</td></tr>
+      <tr><td>Esito</td><td>${r.esente ? '<span class="na">esente (Nord)</span>' : ok(r.estiva)}</td></tr>
+      <tr><th colspan="2">Igrometrica (ISO 13788)</th></tr>
+      <tr><td>f<sub>Rsi</sub> · f<sub>Rsi,min</sub> (mese ${r.muffa.mese >= 0 ? MESI[r.muffa.mese] : '–'})</td><td class="num">${fmt(r.muffa.f)} · ${fmt(r.muffa.fmin)}</td></tr>
+      <tr><td>Rischio muffa superficiale</td><td>${ok(r.muffa.ok, 'Assente', 'Rischio')}</td></tr>
+      <tr><td>Condensa interstiziale max · residuo a fine anno</td><td class="num">${fmt(g.maxM * 1000, 1)} · ${fmt(g.residuo * 1000, 1)} g/m²</td></tr>
+      <tr><td>Esito Glaser</td><td>${g.assente ? '<span class="ok">✔ Nessuna condensa</span>' : ok(g.ok, 'Condensa ammissibile e smaltita', 'NON verificato')}</td></tr></table></div>
+    <h3>Diagramma mese: <select class="noprint" style="width:auto" data-a="mese" data-i="${i}">${MESI.map((m, k) => `<option value="${k}"${k === mm ? ' selected' : ''}>${m}</option>`).join('')}</select>
+      <span class="note">θe ${fmt(r.bc[mm].thetaE, 1)} °C</span></h3>
+    <div class="charts">${TH.charts.temperature(r.model, mese)}${TH.charts.glaser(r.model, mese)}${g.assente ? '' : TH.charts.condensa(g)}</div>
+    <div style="overflow:auto"><table class="mt"><tr><th>Mese</th>${MESI.map(m => `<th>${m}</th>`).join('')}</tr>
+    <tr><th>θe [°C]</th>${r.bc.map(b => `<td class="num">${fmt(b.thetaE, 1)}</td>`).join('')}</tr>
+    <tr><th>Condensa del mese [g/m²]</th>${g.mesi.map(o => `<td class="num">${fmt(o.g * 1000, 1)}</td>`).join('')}</tr>
+    <tr><th>Accumulo [g/m²]</th>${g.mesi.map(o => `<td class="num">${fmt(o.maxM * 1000, 1)}</td>`).join('')}</tr></table></div></div>`;
+  }
+
+  /* ---------- normativa ---------- */
+  function vNorme() {
+    return `<div class="card"><h2>Normativa di riferimento</h2><table><tr><th>Tipo</th><th>Riferimento</th><th>Contenuto</th><th>Uso nell'app</th></tr>
+      ${TH.norme.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table>
+      <p class="note">Le edizioni e i valori numerici vanno verificati sul testo vigente. Dettaglio completo e formule in docs/NORMATIVA.md. Limiti: nessun ponte termico, nessun calcolo ISO 13370 del terreno, nessun serramento; non sostituisce un software certificato CTI per l'APE (UNI/TS 11300).</p></div>`;
+  }
+
+  /* ---------- rendering e eventi ---------- */
+  const VIEWS = { progetto:vProgetto, ambienti:vAmbienti, materiali:vMateriali, stratigrafie:vStrat, verifica:vVerifica, norme:vNorme };
+  function render() {
+    $('#main').innerHTML = VIEWS[tab]();
+    document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  }
+  $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { tab = b.dataset.tab; render(); window.scrollTo(0, 0); } });
+
+  const trovaComune = txt => comuni().find(c => (c.nome + ' (' + c.prov + ')') === txt) || comuni().find(c => c.nome.toLowerCase() === txt.trim().toLowerCase());
+  const download = (name, text, type = 'application/json') => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); };
+
+  function aggiornaAnteprima() { const p = $('#prev'); if (p && ED) p.innerHTML = anteprima(ED); }
+
+  $('#main').addEventListener('change', e => {
+    const t = e.target, d = t.dataset;
+    if (d.a === 'comune') { const c = trovaComune(t.value); if (!c) return toast('Comune non presente: compila i dati e salvalo nel database'); P.comuneId = c.id; P.clima = climaDa(c); save(); return render(); }
+    if (d.a === 'gg') { P.clima.GG = num(t.value); P.clima.zona = C.zonaDaGG(P.clima.GG); }
+    if (d.a === 'mq') { matFilt.q = t.value; return render(); }
+    if (d.a === 'mcat') { matFilt.cat = t.value; return render(); }
+    if (d.a === 'mese') { P.elementi[+d.i].mese = +t.value; save(); return render(); }
+    if (d.a === 'tipoAmb') { const a = P.ambienti[+d.i]; a.tipo = t.value; Object.assign(a, { b:a.b ?? 0.5, theta:Array.isArray(a.theta) ? a.theta : 15, phi:Array.isArray(a.phi) ? a.phi : 60 });
+      if (t.value === 'mensile') { a.theta = P.clima.theta.map(v => +(P.thetaI - 0.5 * (P.thetaI - v)).toFixed(1)); a.phi = Array(12).fill(60); } save(); return render(); }
+    if (d.f) {
+      const cur = d.f.split('.').reduce((o, k) => o[k], P), v = typeof cur === 'string' || cur === undefined ? t.value : t.type === 'number' ? num(t.value) : t.value;
+      setPath(P, d.f, ['nome', 'committente', 'limitSet', 'clima.zona'].includes(d.f) || /\.nome$|\.tipo$/.test(d.f) ? t.value : v);
+      if (d.f.startsWith('ambienti') || d.f === 'limitSet' || d.f === 'clima.zona' || d.a === 'gg') { save(); return render(); }
+      return save();
+    }
+    if (d.lim) { const ls = limitiSet(); ls[P.limitSet][d.lim][P.clima.zona] = num(t.value); store.set('limiti', ls); return render(); }
+    if (d.m && MF) MF[d.m] = ['nome', 'cat'].includes(d.m) ? t.value : num(t.value);
+    if (d.e && ED) { ED[d.e] = t.value; render(); }
+    if (d.l && ED) { const [i, k] = d.l.split('.'); const l = ED.strati[+i];
+      if (k === 'vent') l.vent = t.checked ? 2 : 0; else if (k === 'matId') { l.matId = t.value; if (l.s == null) l.s = 10; } else l.s = num(t.value);
+      render(); }
+  });
+
+  $('#main').addEventListener('click', e => {
+    const t = e.target.closest('[data-a]'); if (!t || ['INPUT', 'SELECT'].includes(t.tagName)) return;
+    const a = t.dataset.a, i = +t.dataset.i, id = t.dataset.id;
+    switch (a) {
+      case 'saveComune': { const n = (typeof prompt === 'function' && prompt('Nome del comune da salvare nel database:', P.clima.nome)) || P.clima.nome;
+        const c = P.clima, rec = { id:'u-' + uid(), nome:n, prov:c.prov || '', lat:c.lat, lon:c.lon, alt:c.alt, GG:c.GG, theta:[...c.theta], phi:[...c.phi] };
+        dbCom = dbCom.filter(x => x.nome !== n); dbCom.push(rec); store.set('comuni', dbCom); P.clima.nome = n; save(); toast('Comune salvato nel database'); return render(); }
+      case 'csvComuni': return $('#csvf').click();
+      case 'exportP': return download((P.nome || 'progetto').replace(/\W+/g, '_') + '.json', JSON.stringify({ progetto:P, materiali:dbMat, stratigrafie:dbStr, comuni:dbCom }, null, 1));
+      case 'importP': return $('#jsonf').click();
+      case 'newP': if (!vProgetto.armed) { vProgetto.armed = true; setTimeout(() => vProgetto.armed = false, 4000); return toast('Il progetto corrente sarà sostituito: clicca di nuovo per confermare'); } vProgetto.armed = false; P = nuovoProgetto(); save(); return render();
+      case 'addAmb': P.ambienti.push({ id:'a-' + uid(), nome:'Nuovo ambiente', tipo:'non_climatizzato', b:0.5, theta:15, phi:60 }); save(); return render();
+      case 'delAmb': if (P.elementi.some(x => x.ambId === P.ambienti[i].id)) return toast('Ambiente usato da un elemento'); P.ambienti.splice(i, 1); save(); return render();
+      case 'dupMat': { const m = materiali().find(x => x.id === id); MF = { ...m, id:m.base ? undefined : m.id, nome:m.base ? m.nome + ' (copia)' : m.nome, cat:m.base ? 'Personalizzati' : m.cat }; render(); return window.scrollTo(0, document.body.scrollHeight); }
+      case 'cancMat': MF = null; return render();
+      case 'saveMat': { const f = MF || {}; const q = n => $(`[data-m="${n}"]`).value;
+        const rec = { id:f.id || 'u-' + uid(), nome:q('nome').trim(), cat:q('cat').trim() || 'Personalizzati', lambda:num(q('lambda')), rho:num(q('rho')), c:num(q('c'), 1000), mu:num(q('mu'), 1), s:num(q('s'), 100) };
+        if (!rec.nome || rec.lambda <= 0) return toast('Indica nome e λ > 0');
+        dbMat = dbMat.filter(x => x.id !== rec.id); dbMat.push(rec); store.set('materiali', dbMat); MF = null; toast('Materiale salvato'); return render(); }
+      case 'delMat': if (stratigrafie().some(s => s.strati.some(l => l.matId === id))) return toast('Materiale usato da una stratigrafia'); dbMat = dbMat.filter(x => x.id !== id); store.set('materiali', dbMat); return render();
+      case 'selStr': ED = clone(stratigrafie().find(s => s.id === id)); return render();
+      case 'newStr': ED = { id:'u-' + uid(), nome:'Nuova stratigrafia', tipo:'parete', strati:[] }; return render();
+      case 'addL': { const m = TH.materiali.find(x => x.id !== 'aria'); ED.strati.push({ matId:m.id, s:m.s }); return render(); }
+      case 'delL': ED.strati.splice(i, 1); return render();
+      case 'up': if (i > 0) [ED.strati[i - 1], ED.strati[i]] = [ED.strati[i], ED.strati[i - 1]]; return render();
+      case 'down': if (i < ED.strati.length - 1) [ED.strati[i + 1], ED.strati[i]] = [ED.strati[i], ED.strati[i + 1]]; return render();
+      case 'saveStr': { if (!ED.strati.length) return toast('Aggiungi almeno uno strato');
+        if (TH.stratigrafie.some(s => s.id === ED.id)) ED.id = 'u-' + uid();
+        dbStr = dbStr.filter(s => s.id !== ED.id); dbStr.push(clone(ED)); store.set('stratigrafie', dbStr); toast('Stratigrafia salvata nel database'); return render(); }
+      case 'delStr': if (P.elementi.some(x => x.stratId === id)) return toast('Stratigrafia usata nel progetto'); dbStr = dbStr.filter(s => s.id !== id); store.set('stratigrafie', dbStr); if (ED && ED.id === id) ED = null; return render();
+      case 'addEl': { const s = stratigrafie().find(x => x.id === $('#n-str').value); P.elementi.push({ id:uid(), nome:$('#n-nome').value.trim() || s.nome, stratId:s.id, ambId:$('#n-amb').value, orient:$('#n-or').value }); save(); return render(); }
+      case 'delEl': P.elementi.splice(i, 1); save(); return render();
+      case 'print': return window.print();
+    }
+  });
+
+  document.addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    if (e.target.id === 'csvf') rd.onload = () => {
+      let n = 0;
+      rd.result.split(/\r?\n/).forEach(row => { const c = row.split(';'); if (c.length < 9 || isNaN(num(c[2]))) return;
+        const rec = { id:'u-' + uid(), nome:c[0].trim(), prov:c[1].trim(), lat:num(c[2]), lon:num(c[3]), alt:num(c[4]), GG:num(c[5]) };
+        if (c.length >= 30) { rec.theta = c.slice(6, 18).map(v => num(v)); rec.phi = c.slice(18, 30).map(v => num(v)); } else { rec.Tm = num(c[6]); rec.A = num(c[7]); rec.UR = num(c[8]); }
+        dbCom = dbCom.filter(x => x.nome !== rec.nome); dbCom.push(rec); n++; });
+      store.set('comuni', dbCom); toast(n + ' comuni importati'); render();
+    };
+    if (e.target.id === 'jsonf') rd.onload = () => { try { const j = JSON.parse(rd.result); P = j.progetto; dbMat = j.materiali || dbMat; dbStr = j.stratigrafie || dbStr; dbCom = j.comuni || dbCom;
+      store.set('materiali', dbMat); store.set('stratigrafie', dbStr); store.set('comuni', dbCom); save(); toast('Progetto importato'); render(); } catch (err) { toast('File non valido'); } };
+    rd.readAsText(f); e.target.value = '';
+  });
+
+  render();
+})();
+
+</script>
+
+</body></html>

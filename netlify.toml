@@ -1,0 +1,9 @@
+# Sito statico: nessun build. In Netlify impostare nessuna base directory necessaria
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "same-origin"
