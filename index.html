@@ -309,8 +309,8 @@ TH.norme = [
     for (const l of strat.strati) {
       const m = matById[l.matId]; if (!m) continue;
       const d = l.s / 1000;
-      if (m.tipo === 'aria') layers.push({ nome:m.nome, d, gap:true, vent:l.vent === 2, R:resistenzaIntercapedine(l.s, dir), sd:d, rho:0, c:0, lambda:0, mu:1 });
-      else layers.push({ nome:m.nome, d, lambda:m.lambda, rho:m.rho, c:m.c, mu:m.mu, R:d / m.lambda, sd:m.mu * d });
+      if (m.tipo === 'aria') layers.push({ nome:m.nome, cat:m.cat, col:m.col, pat:m.pat, d, gap:true, vent:l.vent === 2, R:resistenzaIntercapedine(l.s, dir), sd:d, rho:0, c:0, lambda:0, mu:1 });
+      else layers.push({ nome:m.nome, cat:m.cat, col:m.col, pat:m.pat, d, lambda:m.lambda, rho:m.rho, c:m.c, mu:m.mu, R:d / m.lambda, sd:m.mu * d });
     }
     const Rsi = RSI[dir];
     let Rse = lato === 'esterno' ? 0.04 : lato === 'terreno' ? 0 : RSI[dir];
@@ -474,18 +474,67 @@ TH.norme = [
   const PAL = ['#b9888a','#a8a2a3','#d9b3b0','#8c8385','#c97b78','#cfc7c8','#9b5457','#bfa9aa','#7a7274'];
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 
-  /* Sezione della stratigrafia, larghezza proporzionale (con minimo) e quote in mm. */
+  /* Retini (pattern SVG): id -> [etichetta, larghezza, altezza, contenuto]. */
+  const PATTERNS = {
+    none:['Nessuno'], diag:['Diagonale /',8,8,'<path d="M-1,1l2,-2M0,8l8,-8M7,9l2,-2"/>'], diag2:['Diagonale \\',8,8,'<path d="M-1,7l2,2M0,0l8,8M7,-1l2,2"/>'],
+    cross:['Incrociato X',8,8,'<path d="M-1,1l2,-2M0,8l8,-8M7,9l2,-2M-1,7l2,2M0,0l8,8M7,-1l2,2"/>'],
+    horiz:['Orizzontale',8,4,'<path d="M0,2h8"/>'], vert:['Verticale',4,8,'<path d="M2,0v8"/>'], grid:['Reticolo +',6,6,'<path d="M0,3h6M3,0v6"/>'],
+    dots:['Puntinato',8,8,'<circle cx="2" cy="2" r=".9" fill="#000" stroke="none"/><circle cx="6" cy="6" r=".9" fill="#000" stroke="none"/>'],
+    concrete:['Calcestruzzo',14,14,'<circle cx="2" cy="3" r=".8" fill="#000" stroke="none"/><circle cx="10" cy="9" r=".8" fill="#000" stroke="none"/><circle cx="7" cy="2" r=".6" fill="#000" stroke="none"/><path d="M8,6l3,0l-1.5,-2.5z"/><path d="M1,12l3,0l-1.5,-2.5z"/>'],
+    brick:['Laterizio',16,8,'<path d="M0,0H16M0,4H16M8,0V4M0,4V8"/>'], wave:['Isolante (onda)',12,6,'<path d="M0,3q3,-3 6,0t6,0"/>'],
+    zigzag:['Zig-zag',8,6,'<path d="M0,5l2,-4l2,4l2,-4l2,4"/>'], wood:['Legno',12,8,'<path d="M0,2q6,-2 12,0M0,6q6,2 12,0"/>']
+  };
+  const PALETTE = ['#a7a7a7','#c9764f','#e8c85a','#9fd0e6','#c9a06a','#8fa6bc','#7fae8c','#d98a8a','#b79ad0','#e8dcc6','#4d4d4d','#f2b36b'];
+  /* Colore e retino predefiniti in base al materiale; quelli scelti dall'utente (col, pat) hanno la precedenza. */
+  function stile(m) {
+    if (m.gap || m.tipo === 'aria') return { col:'#ffffff', pat:'none' };
+    const n = (m.nome || '').toLowerCase(), c = m.cat || '';
+    let d = { col:'#cfcfcf', pat:'none' };
+    if (/cellulare/.test(n)) d = { col:'#cfcfc8', pat:'dots' };
+    else if (/cls|calcestruzzo/.test(n)) d = { col:'#a7a7a7', pat:'concrete' };
+    else if (/mattone|laterizio/.test(n)) d = { col:'#c9764f', pat:'brick' };
+    else if (/acciaio|alluminio/.test(n)) d = { col:'#8fa6bc', pat:'diag' };
+    else if (/pietra|marmo|granito/.test(n)) d = { col:'#b8b0a2', pat:'cross' };
+    else if (c === 'Legno' || /legno|osb|compensato|truciolare/.test(n)) d = { col:'#c9a06a', pat:'wood' };
+    else if (c === 'Isolanti') d = /eps|xps/.test(n) ? { col:'#bfe0ee', pat:'dots' } : /pur|pir|fenolica|aerogel/.test(n) ? { col:'#f2b36b', pat:'zigzag' }
+      : /vetro cellulare|perlite|argilla/.test(n) ? { col:'#d9d3c3', pat:'dots' } : { col:'#efd45e', pat:'wave' };
+    else if (c === 'Membrane') d = { col:'#4d4d4d', pat:'none' };
+    else if (/gesso/.test(n)) d = { col:'#f2efe6', pat:'horiz' };
+    else if (/massetto/.test(n)) d = { col:'#bfb7a9', pat:'dots' };
+    else if (/piastrelle|pvc|linoleum/.test(n)) d = { col:'#d9cdb8', pat:'grid' };
+    else if (c === 'Intonaci e finiture') d = { col:'#e8dcc6', pat:'dots' };
+    else if (/tegole/.test(n)) d = { col:'#b5533c', pat:'diag' };
+    else if (/ghiaia|sabbia/.test(n)) d = { col:'#c9c2b6', pat:'dots' };
+    else if (/terreno|argilla|limo/.test(n)) d = { col:'#8a7456', pat:'dots' };
+    else if (/vetro/.test(n)) d = { col:'#cfeaf0', pat:'diag2' };
+    return { col:m.col || d.col, pat:PATTERNS[m.pat] ? m.pat : d.pat };
+  }
+  let uidP = 0;
+  const defsRetini = (pre, ids) => '<defs>' + [...new Set(ids)].filter(p => PATTERNS[p] && PATTERNS[p][3]).map(p => { const [, w, h, body] = PATTERNS[p];
+    return `<pattern id="${pre}${p}" width="${w}" height="${h}" patternUnits="userSpaceOnUse"><g fill="none" stroke="#000" stroke-opacity=".5" stroke-width=".8">${body}</g></pattern>`; }).join('') + '</defs>';
+  const riempi = (pre, st, x, y, w, h, extra = '') => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${st.col}" ${extra}/>` +
+    (PATTERNS[st.pat] && PATTERNS[st.pat][3] ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#${pre}${st.pat})" stroke="none"/>` : '');
+  /* Campione colore+retino (tabella materiali, scelta del retino). */
+  function campione(m, w = 34, h = 16) {
+    const pre = 'c' + (++uidP) + '-', st = stile(m);
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle">${defsRetini(pre, [st.pat])}${riempi(pre, st, 0.5, 0.5, w - 1, h - 1)}<rect x=".5" y=".5" width="${w - 1}" height="${h - 1}" fill="none" stroke="#667"/></svg>`;
+  }
+
+  /* Sezione della stratigrafia: larghezza proporzionale (con minimo), quote in mm, legenda materiali. */
   function sezione(model) {
-    const W = 420, H = 110, L = model.layers; if (!L.length) return '';
+    const W = 420, L = model.layers; if (!L.length) return '';
+    const pre = 's' + (++uidP) + '-', sts = L.map(stile), rows = Math.ceil(L.length / 2), H = 110 + rows * 14;
     const tot = L.reduce((s, l) => s + Math.max(l.d, 0.012), 0);
-    let x = 10, out = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Sezione stratigrafia"><text x="10" y="12">INTERNO</text><text x="${W - 10}" y="12" text-anchor="end">ESTERNO</text>`;
+    let x = 10, out = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Sezione stratigrafia">${defsRetini(pre, sts.map(t => t.pat))}<text x="10" y="12">INTERNO</text><text x="${W - 10}" y="12" text-anchor="end">ESTERNO</text>`;
     L.forEach((l, i) => {
       const w = Math.max(l.d, 0.012) / tot * (W - 20);
-      out += `<rect x="${x}" y="20" width="${w}" height="50" fill="${l.gap ? 'none' : PAL[i % PAL.length]}" stroke="#667" ${l.gap ? 'stroke-dasharray="3"' : ''}><title>${esc(l.nome)}</title></rect>`;
+      out += `<g>${riempi(pre, sts[i], x, 20, w, 50)}<rect x="${x}" y="20" width="${w}" height="50" fill="none" stroke="#667" ${l.gap ? 'stroke-dasharray="3"' : ''}/><title>${esc(l.nome)}</title></g>`;
       out += `<text x="${x + w / 2}" y="84" text-anchor="middle" font-size="9">${Math.round(l.d * 1000 * 10) / 10}</text>`;
       x += w;
     });
-    return out + `<text x="10" y="104" font-size="10">spessori in mm · strati: ${L.length}${model.ventilata ? ' (oltre intercapedine ventilata ignorati)' : ''}</text></svg>`;
+    L.forEach((l, i) => { const lx = 10 + (i % 2) * 205, ly = 96 + Math.floor(i / 2) * 14;
+      out += `${riempi(pre, sts[i], lx, ly, 14, 9)}<rect x="${lx}" y="${ly}" width="14" height="9" fill="none" stroke="#667"/><text x="${lx + 19}" y="${ly + 8}" font-size="9">${i + 1}. ${esc(l.nome.length > 36 ? l.nome.slice(0, 35) + '…' : l.nome)}</text>`; });
+    return out + `<text x="10" y="${H - 4}" font-size="10">spessori in mm · strati: ${L.length}${model.ventilata ? ' (oltre intercapedine ventilata ignorati)' : ''}</text></svg>`;
   }
 
   /* Grafico a linee generico. series: {pts:[[x,y]], col, dash, name} ; vl: linee verticali x. */
@@ -523,7 +572,7 @@ TH.norme = [
       { pts:[[1, res.limite * 1000], [12, res.limite * 1000]], col:'#b3261e', dash:true, name:'limite' }],
       xl:'Mese (1 = ottobre … 12 = settembre)', yl:'g/m²' });
   }
-  window.TH = window.TH || {}; TH.charts = { sezione, glaser, temperature, condensa };
+  window.TH = window.TH || {}; TH.charts = { PATTERNS, PALETTE, stile, campione, sezione, glaser, temperature, condensa };
 })();
 
 </script>
@@ -627,18 +676,21 @@ TH.norme = [
   function vMateriali() {
     const cats = [...new Set(materiali().map(m => m.cat))];
     const list = materiali().filter(m => (!matFilt.cat || m.cat === matFilt.cat) && m.nome.toLowerCase().includes(matFilt.q.toLowerCase()));
-    const f = MF || {};
+    const f = MF || {}, st = TH.charts.stile({ nome:f.nome, cat:f.cat, col:f.col, pat:f.pat });
     return `<div class="card"><h2>Database materiali</h2><div class="row">
       <label style="flex:1">Cerca<input data-a="mq" value="${esc(matFilt.q)}" placeholder="es. EPS, laterizio…"></label>
       <label>Categoria<select data-a="mcat"><option value="">Tutte</option>${cats.map(c => `<option${c === matFilt.cat ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select></label></div>
-      <div style="overflow:auto;max-height:420px;margin-top:8px"><table><tr><th>Materiale</th><th>Categoria</th><th class="num">λ W/mK</th><th class="num">ρ kg/m³</th><th class="num">c J/kgK</th><th class="num">μ</th><th></th></tr>
-      ${list.map(m => `<tr><td>${esc(m.nome)} ${m.base ? '' : '<span class="tag">personale</span>'}</td><td>${esc(m.cat)}</td><td class="num">${m.lambda ?? '–'}</td><td class="num">${m.rho}</td><td class="num">${m.c}</td><td class="num">${m.mu}</td>
+      <div style="overflow:auto;max-height:420px;margin-top:8px"><table><tr><th>Materiale</th><th>Categoria</th><th class="num">λ W/mK</th><th class="num">ρ kg/m³</th><th class="num">c J/kgK</th><th class="num">μ</th><th>Aspetto</th><th></th></tr>
+      ${list.map(m => `<tr><td>${esc(m.nome)} ${m.base ? '' : '<span class="tag">personale</span>'}</td><td>${esc(m.cat)}</td><td class="num">${m.lambda ?? '–'}</td><td class="num">${m.rho}</td><td class="num">${m.c}</td><td class="num">${m.mu}</td><td>${TH.charts.campione(m)}</td>
       <td>${m.tipo === 'aria' ? '' : `<button class="i" data-a="dupMat" data-id="${m.id}">${m.base ? 'Duplica' : 'Modifica'}</button>${m.base ? '' : ` <button class="i" data-a="delMat" data-id="${m.id}">✕</button>`}`}</td></tr>`).join('')}</table></div></div>
     <div class="card"><h2>${f.id ? 'Modifica materiale personale' : 'Nuovo materiale'}</h2><div class="grid">
       <label>Nome<input data-m="nome" value="${esc(f.nome)}"></label><label>Categoria<input data-m="cat" list="dl-cat" value="${esc(f.cat || 'Personalizzati')}"></label>
       <label>λ [W/mK]<input type="number" step="0.001" data-m="lambda" value="${f.lambda ?? ''}"></label><label>ρ [kg/m³]<input type="number" data-m="rho" value="${f.rho ?? ''}"></label>
       <label>c [J/kgK]<input type="number" data-m="c" value="${f.c ?? 1000}"></label><label>μ [-]<input type="number" step="0.1" data-m="mu" value="${f.mu ?? 1}"></label>
-      <label>Spessore tipico [mm]<input type="number" step="0.1" data-m="s" value="${f.s ?? 100}"></label></div>
+      <label>Spessore tipico [mm]<input type="number" step="0.1" data-m="s" value="${f.s ?? 100}"></label>
+      <label>Retino<select data-m="pat">${Object.entries(TH.charts.PATTERNS).map(([k, v]) => `<option value="${k}"${k === st.pat ? ' selected' : ''}>${esc(v[0])}</option>`).join('')}</select></label></div>
+      <div style="margin-top:8px"><span class="note">Colore di riempimento</span><div class="row" style="gap:6px;margin-top:4px">${TH.charts.PALETTE.map(c => `<button type="button" class="i" data-a="matCol" data-id="${c}" title="${c}" style="width:28px;height:28px;padding:0;background:${c};${c === st.col ? 'outline:3px solid var(--acc);outline-offset:1px' : ''}"></button>`).join('')}
+        <span style="margin-left:10px">Anteprima: ${TH.charts.campione({ col:st.col, pat:st.pat }, 70, 28)}</span></div></div>
       <datalist id="dl-cat">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
       <p><button class="b" data-a="saveMat">${f.id ? 'Aggiorna' : 'Aggiungi al database'}</button> ${f.id ? '<button class="b sec" data-a="cancMat">Annulla</button>' : ''}</p>
       <p class="note">μ = fattore di resistenza alla diffusione del vapore (UNI EN ISO 10456); per membrane indicare μ e spessore per ottenere s_d = μ·d.</p></div>`;
@@ -808,7 +860,7 @@ TH.norme = [
       return save();
     }
     if (d.lim) { const ls = limitiSet(); ls[P.limitSet][d.lim][P.clima.zona] = num(t.value); store.set('limiti', ls); return render(); }
-    if (d.m && MF) MF[d.m] = ['nome', 'cat'].includes(d.m) ? t.value : num(t.value);
+    if (d.m) { MF = MF || {}; MF[d.m] = ['nome', 'cat', 'pat'].includes(d.m) ? t.value : num(t.value); if (d.m === 'pat') return render(); }
     if (d.e && ED) { ED[d.e] = t.value; render(); }
     if (d.l && ED) { const [i, k] = d.l.split('.'); const l = ED.strati[+i];
       if (k === 'vent') l.vent = t.checked ? 2 : 0; else if (k === 'matId') { l.matId = t.value; if (l.s == null) l.s = 10; } else l.s = num(t.value);
@@ -828,10 +880,12 @@ TH.norme = [
       case 'newP': if (!vProgetto.armed) { vProgetto.armed = true; setTimeout(() => vProgetto.armed = false, 4000); return toast('Il progetto corrente sarà sostituito: clicca di nuovo per confermare'); } vProgetto.armed = false; P = nuovoProgetto(); save(); return render();
       case 'addAmb': P.ambienti.push({ id:'a-' + uid(), nome:'Nuovo ambiente', tipo:'non_climatizzato', b:0.5, theta:15, phi:60 }); save(); return render();
       case 'delAmb': if (P.elementi.some(x => x.ambId === P.ambienti[i].id)) return toast('Ambiente usato da un elemento'); P.ambienti.splice(i, 1); save(); return render();
-      case 'dupMat': { const m = materiali().find(x => x.id === id); MF = { ...m, id:m.base ? undefined : m.id, nome:m.base ? m.nome + ' (copia)' : m.nome, cat:m.base ? 'Personalizzati' : m.cat }; render(); return window.scrollTo(0, document.body.scrollHeight); }
+      case 'dupMat': { const m = materiali().find(x => x.id === id); MF = { ...m, ...TH.charts.stile(m), id:m.base ? undefined : m.id, nome:m.base ? m.nome + ' (copia)' : m.nome, cat:m.base ? 'Personalizzati' : m.cat }; render(); return window.scrollTo(0, document.body.scrollHeight); }
+      case 'matCol': { const g = n => { const e = $(`[data-m="${n}"]`); return e ? e.value : undefined; };
+        MF = { ...(MF || {}), nome:g('nome'), cat:g('cat'), lambda:g('lambda'), rho:g('rho'), c:num(g('c'), 1000), mu:num(g('mu'), 1), s:num(g('s'), 100), pat:g('pat'), col:id }; return render(); }
       case 'cancMat': MF = null; return render();
       case 'saveMat': { const f = MF || {}; const q = n => $(`[data-m="${n}"]`).value;
-        const rec = { id:f.id || 'u-' + uid(), nome:q('nome').trim(), cat:q('cat').trim() || 'Personalizzati', lambda:num(q('lambda')), rho:num(q('rho')), c:num(q('c'), 1000), mu:num(q('mu'), 1), s:num(q('s'), 100) };
+        const rec = { id:f.id || 'u-' + uid(), nome:q('nome').trim(), cat:q('cat').trim() || 'Personalizzati', lambda:num(q('lambda')), rho:num(q('rho')), c:num(q('c'), 1000), mu:num(q('mu'), 1), s:num(q('s'), 100), col:(MF && MF.col) || TH.charts.stile({ nome:q('nome'), cat:q('cat') }).col, pat:q('pat') };
         if (!rec.nome || rec.lambda <= 0) return toast('Indica nome e λ > 0');
         dbMat = dbMat.filter(x => x.id !== rec.id); dbMat.push(rec); store.set('materiali', dbMat); MF = null; toast('Materiale salvato'); return render(); }
       case 'delMat': if (stratigrafie().some(s => s.strati.some(l => l.matId === id))) return toast('Materiale usato da una stratigrafia'); dbMat = dbMat.filter(x => x.id !== id); store.set('materiali', dbMat); return render();
