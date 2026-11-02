@@ -7,6 +7,7 @@ parametri dinamici (UNI EN ISO 13786), confronto con i limiti per zona climatica
 - Dati salvati nel browser (localStorage); import/export JSON.
 - Stratigrafie a colori in base al materiale, con retini (diagonale, incrociato, orizzontale, calcestruzzo, laterizio, isolante…); per i materiali personali colore da palette e retino a scelta.
 - Sezione orientata: parete verticale e slanciata, coperture e pavimenti orizzontali come un solaio. Diagrammi di verifica con fasce colorate degli strati e andamento dell'umidità relativa (φ) e della condensa negli strati.
+- Esempi di pareti con condensa interstiziale (muro in blocchetti 25 non isolato; isolante interno senza freno al vapore), disponibili anche come progetti template in archivio.
 - **Archivio progetti**: salva i progetti, riaprili o usali come template per nuovi progetti (con le stratigrafie/materiali personali usati); export/import dell'archivio.
 - `index.html` contiene tutto (motore di calcolo, database materiali/comuni, UI).
 

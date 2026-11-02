@@ -204,6 +204,10 @@ TH.materiali.unshift({ id:'aria', tipo:'aria', cat:'Intercapedini', nome:'Interc
     { id:'s-parete-cls-roccia', nome:'Parete cls 25 + cappotto lana di roccia 12', tipo:'parete', strati:[
       { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Calcestruzzo ordinario'), s:250 },
       { matId:id('Lana di roccia 140'), s:120 }, { matId:id('Rasante su cappotto'), s:6 } ] },
+    { id:'s-muro-blocchetti', nome:'Muro classico in blocchetti cls 25 con intonaco interno ed esterno (non isolato)', tipo:'parete', strati:[
+      { matId:id('Intonaco di calce e cemento'), s:15 }, { matId:id('Blocco in cls vibrocompresso'), s:250 }, { matId:id('Intonaco di calce e cemento'), s:20 } ] },
+    { id:'s-muro-isolante-interno', nome:'Muro laterizio 25 con isolante interno senza freno al vapore (errore tipico)', tipo:'parete', strati:[
+      { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Lana di roccia 80'), s:50 }, { matId:id('Blocco laterizio forato 800'), s:250 }, { matId:id('Intonaco di calce e cemento'), s:20 } ] },
     { id:'s-parete-secco-facciata', nome:'Parete a secco con facciata ventilata', tipo:'parete', strati:[
       { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lastra di cartongesso'), s:12.5 },
       { matId:id('Freno al vapore'), s:0.2 }, { matId:id('Lana di roccia 80'), s:100 },
@@ -820,6 +824,16 @@ TH.norme = [
 
   /* ---------- Archivio progetti (DB progetti, riutilizzabili come template) ---------- */
   let dbPrj = store.get('archivio', []);
+  /* Progetti di esempio in archivio (una sola volta): pareti che danno condensa interstiziale. */
+  (function seedEsempi() {
+    if (store.get('seed_esempi1', false)) return;
+    const mk = (nome, note, comuneId, phiI, stratId, elNome) => { const c = TH.comuni.find(x => x.id === comuneId), p = nuovoProgetto();
+      Object.assign(p, { nome, comuneId, clima:climaDa(c), phiI, elementi:[{ id:uid(), nome:elNome, stratId, ambId:'ext', orient:'S' }] });
+      return { id:'p-esempio-' + comuneId + stratId, nome, tag:'esempio, condensa', note, template:true, salvato:Date.now(), progetto:p, db:{ strat:[], mat:[] } }; };
+    dbPrj.push(mk('Esempio condensa: muro blocchetti 25 – Aosta, φi 80 %', 'Muro classico non isolato in clima freddo con umidità interna alta (es. cucina/bagno): condensa interstiziale invernale.', 'aosta', 80, 's-muro-blocchetti', 'Muro blocchetti 25'));
+    dbPrj.push(mk('Esempio condensa: isolante interno senza freno al vapore – Ferno', 'Laterizio 25 con 5 cm di lana di roccia all\'interno: la condensa si forma dietro l\'isolante anche con φi 65 %.', 'ferno', 65, 's-muro-isolante-interno', 'Muro con isolante interno'));
+    store.set('archivio', dbPrj); store.set('seed_esempi1', true);
+  })();
   const dataIt = t => new Date(t).toLocaleString('it-IT', { dateStyle:'short', timeStyle:'short' });
   function vArchivio() {
     const q = (vArchivio.q || '').toLowerCase();
