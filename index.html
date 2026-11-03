@@ -190,13 +190,21 @@ TH.materiali = [
   ['Terreno','Sabbia e ghiaia',2.00,1800,1000,50,100],
   ['Terreno','Argilla / limo',1.50,1800,1000,50,100],
   /* Prodotti "tipo" ispirati a schede pubbliche (Rockwool, Laterlite): valori indicativi, verificare sulla scheda/DoP del prodotto reale. */
-  ['Isolanti','Lana di roccia 110 doppia densità, cappotto (tipo Frontrock Extra)',0.036,110,1030,1,100],
-  ['Isolanti','Lana di roccia 125 per coperture (tipo Hardrock)',0.036,125,1030,1,100],
-  ['Isolanti','Lana di roccia 40 per pareti a secco (tipo Airrock)',0.035,40,1030,1,75],
-  ['Strutture','Calcestruzzo leggero argilla espansa 1400 (tipo Leca CLS)',0.42,1400,1000,15,60],
-  ['Intonaci e finiture','Massetto alleggerito argilla espansa 1000 (tipo Lecamix)',0.30,1000,1000,8,80]
+  ['Isolanti','Lana di roccia 110 doppia densità, cappotto (tipo Frontrock Extra)',0.036,110,1030,1,100,'Rockwool','Scheda tecnica Rockwool Frontrock Extra (λD 0,036; ρ ≈ 110)','c e μ generici lana minerale (ISO 10456)'],
+  ['Isolanti','Lana di roccia 125 per coperture (tipo Hardrock)',0.036,125,1030,1,100,'Rockwool','EPD Rockwool Hardrock Energy (λ 0,036; ρ 110–130)','c e μ generici'],
+  ['Isolanti','Lana di roccia 40 per pareti a secco (tipo Airrock)',0.035,40,1030,1,75,'Rockwool','Valore indicativo tipo Airrock','λ, ρ, c, μ non verificati su scheda: verificare'],
+  ['Strutture','Calcestruzzo leggero argilla espansa 1400 (tipo Leca CLS)',0.42,1400,1000,15,60,'Laterlite','Scheda Latermix Beton 1400 su jidipi.com (λ 0,42)','Non è certo che coincida con Leca CLS; μ, c generici'],
+  ['Intonaci e finiture','Massetto alleggerito argilla espansa 1000 (tipo Lecamix)',0.30,1000,1000,8,80,'Laterlite','Valore indicativo (ρ ≈ 1000 da scheda Lecamix Facile)','λ, μ, c non verificati su scheda: verificare'],
+  /* Banca dati prestazioni termiche: solo valori numerici (λ, ρ, c, μ) da schede/EPD pubbliche, con fonte e note. I marchi appartengono ai rispettivi titolari e sono citati a solo scopo identificativo. */
+  ['Intonaci e finiture','Lastra cartongesso Gyproc Standard 12,5 mm',0.21,690,1000,10,12.5,'Gyproc','λ e μ: scheda Gyproc Habito Silence (valori tabulati EN ISO 10456); ρ: EPD Gyproc Standard 12,5 mm (688 kg/m³, ambito non italiano)','Ipotesi: la Standard ha gli stessi λ e μ tabulati; c generico. Verificare su scheda Gyproc Standard (BA 13)'],
+  ['Strutture','Lecablocco Bioclima Fonoisolante 30 sismico semipieno',0.265,1200,1000,10,300,'Laterlite','λ e ρ: scheda Bioclima Fonoisolante 30 su lavoripubblici.it (λ 0,265; con intonaco 0,233)','Tabella di origine ambigua; μ e c generici cls leggero. Verificare sul catalogo LecaBlocco'],
+  ['Intonaci e finiture','Termointonaco Laterlite',0.086,410,1000,8,30,'Laterlite','Scheda Leca 2016 citata da Infobuild (λ 0,086; ρ ≈ 410)','μ e c generici'],
+  ['Intonaci e finiture','Collante-rasante cementizio Mapetherm AR1 GG (Mapei)',0.33,1400,1000,25,5,'Mapei','λ: scheda Mapei ES (λ10,dry 0,32–0,34, EN 1745); ρ: scheda/EPD Mapei (1400)','μ generico malta cementizia (ISO 10456); μ non presente nelle schede trovate'],
+  ['Strutture','Blocco POROTON Bio Clima 30 (Di Muzio, da verificare)',0.093,650,840,7,300,'Di Muzio','λ 0,093: scheda «Poroton Bio Clima» (produttore non confermato)','ρ, c, μ generici laterizio porizzato; scheda POROTON Thermo non trovata'],
+  ['Isolanti','Isover Arena 34 (lana di vetro semirigida)',0.034,25,800,1,70,'Isover','λD e μ: scheda Isover Arena34 (R_D 1,30 a 45 mm; 2,05 a 70 mm); c: scheda Arena APTA','ρ ipotizzata (generica): verificare'],
+  ['Isolanti','Isover Clima 34 (lana di vetro rigida per cappotto)',0.034,70,1030,1,100,'Isover','λD: schede Isover 34; c: scheda Clima 34 (PT)','ρ ipotizzata, non verificata per Clima 34']
 ].map(r => ({ id:'b-' + r[1].toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),
-  cat:r[0], nome:r[1], lambda:r[2], rho:r[3], c:r[4], mu:r[5], s:r[6] }));
+  cat:r[0], nome:r[1], lambda:r[2], rho:r[3], c:r[4], mu:r[5], s:r[6], marca:r[7], fonte:r[8], nota:r[9] }));
 
 TH.materiali.unshift({ id:'aria', tipo:'aria', cat:'Intercapedini', nome:'Intercapedine d\'aria (ISO 6946)', lambda:null, rho:0, c:0, mu:1, s:30 });
 
@@ -249,6 +257,19 @@ TH.materiali.unshift({ id:'aria', tipo:'aria', cat:'Intercapedini', nome:'Interc
       { matId:id('Lana di roccia 40'), s:100 }, { matId:id('Lastra gessofibra'), s:12.5 }, { matId:id('EPS grafitato'), s:100 }, { matId:id('Rasante acrilico'), s:3 } ] },
     { id:'m-si-controsoffitto', marca:'Siniat', nome:'Controsoffitto a secco con lana 20 cm sotto sottotetto non abitabile', tipo:'copertura', strati:[
       { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Freno al vapore'), s:0.2 }, { matId:id('Lana di roccia 40'), s:200 } ] },
+    { id:'m-mp-cappotto-eps', marca:'Mapei', nome:'Cappotto tipo Mapetherm (collante + EPS grafitato 12 + rasante armato + finitura) su Poroton 30', tipo:'parete', strati:[
+      { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Blocco POROTON'), s:300 }, { matId:id('Collante-rasante cementizio'), s:5 },
+      { matId:id('EPS grafitato'), s:120 }, { matId:id('Collante-rasante cementizio'), s:5 }, { matId:id('Rasante acrilico'), s:3 } ] },
+    { id:'m-mp-cappotto-isover', marca:'Mapei', nome:'Cappotto tipo Mapetherm con lana di vetro Isover Clima 34 12 cm su laterizio 30', tipo:'parete', strati:[
+      { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Blocco laterizio alveolato porizzato 800'), s:300 }, { matId:id('Collante-rasante cementizio'), s:5 },
+      { matId:id('Isover Clima 34'), s:120 }, { matId:id('Collante-rasante cementizio'), s:5 }, { matId:id('Rasante acrilico'), s:3 } ] },
+    { id:'m-le-bioclima', marca:'Laterlite', nome:'Parete in Lecablocco Bioclima 30 con termointonaco 3 cm', tipo:'parete', strati:[
+      { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Lecablocco Bioclima'), s:300 }, { matId:id('Termointonaco Laterlite'), s:30 }, { matId:id('Rasante acrilico'), s:3 } ] },
+    { id:'m-dm-poroton', marca:'Di Muzio', nome:'Parete monostrato in Poroton Bio Clima 30 con intonaci', tipo:'parete', strati:[
+      { matId:id('Intonaco di gesso'), s:15 }, { matId:id('Blocco POROTON'), s:300 }, { matId:id('Intonaco di calce e cemento'), s:20 } ] },
+    { id:'m-gy-isover-divisorio', marca:'Gyproc', nome:'Parete a secco 2+2 lastre Gyproc con Isover Arena 34 70 mm', tipo:'parete', strati:[
+      { matId:id('Lastra cartongesso Gyproc'), s:12.5 }, { matId:id('Lastra cartongesso Gyproc'), s:12.5 }, { matId:id('Isover Arena 34'), s:70 },
+      { matId:id('Lastra cartongesso Gyproc'), s:12.5 }, { matId:id('Lastra cartongesso Gyproc'), s:12.5 } ] },
     { id:'s-parete-secco-facciata', nome:'Parete a secco con facciata ventilata', tipo:'parete', strati:[
       { matId:id('Lastra di cartongesso'), s:12.5 }, { matId:id('Lastra di cartongesso'), s:12.5 },
       { matId:id('Freno al vapore'), s:0.2 }, { matId:id('Lana di roccia 80'), s:100 },
@@ -764,13 +785,13 @@ TH.norme = [
   /* ---------- 3. materiali ---------- */
   function vMateriali() {
     const cats = [...new Set(materiali().map(m => m.cat))];
-    const list = materiali().filter(m => (!matFilt.cat || m.cat === matFilt.cat) && m.nome.toLowerCase().includes(matFilt.q.toLowerCase()));
+    const list = materiali().filter(m => (!matFilt.cat || m.cat === matFilt.cat) && ((m.nome + ' ' + (m.marca || '')).toLowerCase().includes(matFilt.q.toLowerCase())));
     const f = MF || {}, st = TH.charts.stile({ nome:f.nome, cat:f.cat, col:f.col, pat:f.pat });
-    return `<div class="card"><h2>Database materiali</h2><div class="row">
+    return `<div class="card"><h2>Database materiali</h2><p class="note">Le voci con marchio riportano solo valori numerici di prestazione termica (λ, ρ, c, μ) tratti da schede tecniche ed EPD pubbliche, con fonte e note su ciò che è ipotizzato. Marchi e nomi commerciali appartengono ai rispettivi titolari e sono citati a solo scopo identificativo; testi, immagini e tabelle dei produttori non sono riprodotti. Verificare sempre su scheda tecnica / DoP aggiornata prima dell'uso professionale.</p><div class="row">
       <label style="flex:1">Cerca<input data-a="mq" value="${esc(matFilt.q)}" placeholder="es. EPS, laterizio…"></label>
       <label>Categoria<select data-a="mcat"><option value="">Tutte</option>${cats.map(c => `<option${c === matFilt.cat ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select></label></div>
       <div style="overflow:auto;max-height:420px;margin-top:8px"><table><tr><th>Materiale</th><th>Categoria</th><th class="num">λ W/mK</th><th class="num">ρ kg/m³</th><th class="num">c J/kgK</th><th class="num">μ</th><th>Aspetto</th><th></th></tr>
-      ${list.map(m => `<tr><td>${esc(m.nome)} ${m.base ? '' : '<span class="tag">personale</span>'}</td><td>${esc(m.cat)}</td><td class="num">${m.lambda ?? '–'}</td><td class="num">${m.rho}</td><td class="num">${m.c}</td><td class="num">${m.mu}</td><td>${TH.charts.campione(m)}</td>
+      ${list.map(m => `<tr><td>${esc(m.nome)} ${m.base ? '' : '<span class="tag">personale</span>'} ${m.marca ? `<span class="tag">${esc(m.marca)}</span>` : ''}${m.fonte ? `<div class="note" style="max-width:520px">Fonte: ${esc(m.fonte)}${m.nota ? ' · ' + esc(m.nota) : ''}</div>` : ''}</td><td>${esc(m.cat)}</td><td class="num">${m.lambda ?? '–'}</td><td class="num">${m.rho}</td><td class="num">${m.c}</td><td class="num">${m.mu}</td><td>${TH.charts.campione(m)}</td>
       <td>${m.tipo === 'aria' ? '' : `<button class="i" data-a="dupMat" data-id="${m.id}">${m.base ? 'Duplica' : 'Modifica'}</button>${m.base ? '' : ` <button class="i" data-a="delMat" data-id="${m.id}">✕</button>`}`}</td></tr>`).join('')}</table></div></div>
     <div class="card"><h2>${f.id ? 'Modifica materiale personale' : 'Nuovo materiale'}</h2><div class="grid">
       <label>Nome<input data-m="nome" value="${esc(f.nome)}"></label><label>Categoria<input data-m="cat" list="dl-cat" value="${esc(f.cat || 'Personalizzati')}"></label>

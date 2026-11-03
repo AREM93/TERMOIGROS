@@ -10,6 +10,7 @@ parametri dinamici (UNI EN ISO 13786), confronto con i limiti per zona climatica
 - Esempi di pareti con condensa interstiziale (muro in blocchetti 25 non isolato; isolante interno senza freno al vapore), disponibili anche come progetti template in archivio.
 - Pacchetti standard (stratigrafie) ispirati a soluzioni tipo Rockwool, Laterlite e Siniat, filtrabili nella libreria. Sono soluzioni "tipo", non prodotti ufficiali: valori indicativi da verificare su scheda tecnica/DoP.
 - **Relazione tecnica** (scheda Verifica): PDF A4 (dalla stampa del browser, interlinea 1,5) e/o TXT, con normativa, formule, stratigrafie, grafici e verifiche.
+- Banca dati con prodotti Gyproc, Rockwool, Lecablocco (Laterlite), Mapei, Di Muzio, Isover: solo valori numerici (λ, ρ, c, μ) da schede/EPD pubbliche, con fonte e note. Marchi dei rispettivi titolari, citati a scopo identificativo; nessun testo o immagine dei produttori è riprodotto.
 - **Archivio progetti**: salva i progetti, riaprili o usali come template per nuovi progetti (con le stratigrafie/materiali personali usati); export/import dell'archivio.
 - `index.html` contiene tutto (motore di calcolo, database materiali/comuni, UI).
 
